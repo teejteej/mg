@@ -15,3 +15,9 @@ before_filter :track_extra_metrics
 === Add to your environments:
 
 Metrics::init('localhost', 27017, 'metrics', {:no_bounce_seconds => 10, :long_visit_seconds => 120, :log_delays => true})
+
+=== Optionally:
+
+To track landing bounces and long visits, use this at your landing action:
+
+session[:visit_start] ||= Time.now
