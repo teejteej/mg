@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
   s.name        = "metrics"
   s.version     = Metrics::VERSION
   s.authors     = ["teejteej"]
-  s.email       = ["teej@safetymail.info"]
+  s.email       = ["teej@teej.info"]
   s.homepage    = ""
   s.summary     = %q{Metrics}
   s.description = %q{Metrics}
