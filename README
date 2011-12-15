@@ -1,0 +1,17 @@
+=== (Optional): Installing without Gemfile: http://raflabs.com/blogs/silence-is-foo/2010/07/19/installing-a-gem-fork-from-github-source/
+
+=== Add to your Gemfile:
+
+gem 'aarrr', :git => 'git://github.com/railsjedi/aarrr.git'
+gem 'mongo'
+gem 'bson_ext'
+gem 'metrics', :git => 'git://github.com/teejteej/mg.git'
+
+=== Add to your ApplicationController:
+
+before_filter :set_metrics_identity
+before_filter :track_extra_metrics
+
+=== Add to your environments:
+
+Metrics::init('localhost', 27017, 'metrics', {:no_bounce_seconds => 10, :long_visit_seconds => 120, :log_delays => true})
