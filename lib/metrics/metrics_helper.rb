@@ -94,6 +94,7 @@ module MetricsHelper
 
       if !(request.user_agent =~ BOTS)        
         metric_user = AARRR(req.env).user
+        pp "mu: #{metric_user}"
         data = metric_user ? (metric_user['data'] || {}) : {}
         data[field.to_s]
       end
@@ -164,6 +165,10 @@ module MetricsHelper
     rescue Exception => e
       metrics_error e
     end
+  end
+  
+  def user_share_code
+    get_user_metric_data(:share_code) || 'no'
   end
   
 end
