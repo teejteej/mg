@@ -89,20 +89,23 @@ module MetricsHelper
   end
 
   def get_user_metric_data(field, req = request)
+    result = nil
+    
     begin
       start = Time.now
 
       if !(request.user_agent =~ BOTS)        
         metric_user = AARRR(req.env).user
-        pp "mu: #{metric_user}"
         data = metric_user ? (metric_user['data'] || {}) : {}
-        data[field.to_s]
+        result = data[field.to_s]
       end
       
       log_metrics_delay start, "get_user_metric_data"
     rescue Exception => e
       metrics_error e
     end
+    
+    result
   end
 
   def set_user_metric_data(*args)
