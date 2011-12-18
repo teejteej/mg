@@ -20,7 +20,6 @@ module Metrics
       module ::AARRR
         class Session
           def set_data(data)
-            puts "\n\n AARRR patched \n\n"
             update({"data" => data})
           end
         end
