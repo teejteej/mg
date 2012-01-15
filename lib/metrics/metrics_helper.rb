@@ -104,6 +104,9 @@ module MetricsHelper
         event.merge! data
         event[:_session] = AARRR(request.env).id || request.session_options[:id]
     
+        puts "\n\nRTC1:#{Metrics::realtime_connection}"
+        puts "\n\nRTC2:#{::Metrics::realtime_connection}"
+        
         Metrics::realtime_connection.set "#{Metrics::realtime_config[:event_prefix]}-event-#{uuid}", event.to_json
         Metrics::realtime_connection.expire "#{Metrics::realtime_config[:event_prefix]}-event-#{uuid}", options[:expire]
         Metrics::realtime_connection.lpush "#{Metrics::realtime_config[:event_prefix]}-queue", uuid

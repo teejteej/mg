@@ -39,7 +39,7 @@ module Metrics
     end
     
     def init_realtime(host, port, config = {})
-      self.realtime_config = {:host => 'localhost', :port => 6379, :event_prefix => 'fnordmetric'}.merge(config)
+      self.realtime_config = {:event_prefix => 'fnordmetric'}.merge(config)
       self.realtime_connection = Redis.new :host => host, :port => port
 
       puts "Realtime Metrics initialized: #{host}:#{port} [#{realtime_config}]" if self.realtime_config[:log_delays]
