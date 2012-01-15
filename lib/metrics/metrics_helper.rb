@@ -217,13 +217,13 @@ module MetricsHelper
   def nps_vote(score)
     begin
       if nps_voteable?
-        track Metrics::nps_config[:event_type], Metrics::nps_config[:event_name], :data => {:score => score.to_f}
-        set_user_metric_data "#{Metrics::nps_config[:event_name]}_voted".to_sym, score.to_f, :overwrite => true
+        track Metrics::nps_config[:event_type], Metrics::nps_config[:event_name], :data => {:score => score.to_i}
+        set_user_metric_data "#{Metrics::nps_config[:event_name]}_voted".to_sym, score.to_i, :overwrite => true
     
         Metrics::nps_cache.add Metrics::nps_config[:cache_cohort].call, 0, nil, {:raw => true}
         Metrics::nps_cache.incr Metrics::nps_config[:cache_cohort].call
       
-        track_realtime('nps_score', {:score => score.to_f}) if respond_to?(:track_realtime)
+        track_realtime('nps_score', {:score => score.to_i}) if respond_to?(:track_realtime)
       end
     rescue Exception => e
       metrics_error e, 'NPS voting'
