@@ -2,10 +2,15 @@
 
 === Add to your Gemfile:
 
-gem 'aarrr', :git => 'git://github.com/railsjedi/aarrr.git'
+gem 'aarrr', :git => 'git://github.com/teejteej/aarrr.git'
+gem 'metrics', :git => 'git://github.com/teejteej/mg.git'
+
 gem 'mongo'
 gem 'bson_ext'
-gem 'metrics', :git => 'git://github.com/teejteej/mg.git'
+gem 'redis'
+gem 'dalli'
+gem 'kgio'
+gem 'uuidtools'
 
 === Add to your ApplicationController:
 
@@ -19,5 +24,13 @@ Metrics::init('localhost', 27017, 'metrics', {:no_bounce_seconds => 10, :long_vi
 === Optionally:
 
 To track landing bounces and long visits, use this at your landing action:
-
 session[:visit_start] ||= Time.now
+
+=== Tracking realtime metrics
+
+Metrics::init_realtime('localhost', 6379, {:event_prefix => 'fnordmetric'})
+
+=== Tracking NPS survey metrics
+
+### Note: event_name also functions as unique identification to see if the users already voted or not. If config[:once_per_user] == true, and we change event_name after the user has voted once already, he can vote again.
+Metrics::init_nps({:votes_needed => 200, :event_name => 'nps_score_1', :event_type => 'nps_score', :cache_cohort => proc{"nps_score_#{Time.now.month}_#{Time.now.year}"}, :once_per_user => true, :cache_server => '127.0.0.1:11211'})

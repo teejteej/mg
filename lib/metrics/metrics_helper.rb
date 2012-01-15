@@ -6,11 +6,15 @@ module MetricsHelper
     puts "#{method} metrics time: #{(Time.now-start)*1000} ms" if Metrics::config[:log_delays]
   end
 
-  def metrics_error(e)
+  def log_realtime_metrics_delay(start, method)
+    puts "#{method} realtime metrics time: #{(Time.now-start)*1000} ms" if Metrics::realtime_config[:log_delays]
+  end
+
+  def metrics_error(e, type = 'Track')
     if Rails.respond_to?('env') && Rails.env.development?
       raise e
     else
-      puts "Track metric error: #{e}"
+      puts "#{type} metric error: #{e}"
     end
   end
   
@@ -86,6 +90,29 @@ module MetricsHelper
   def track!(event_type, event_name, options = {})
     options[:complete] = true
     track event_type, event_name, options
+  end
+  
+  def track_realtime(type, data = {}, options = {})
+    begin
+      if !(request.user_agent =~ BOTS)    
+        start = Time.now
+        options[:expire] ||= 60
+    
+        uuid = UUIDTools::UUID.timestamp_create.to_s
+    
+        event = {:_type => type}
+        event.merge! data
+        event[:_session] = AARRR(request.env).id || request.session_options[:id]
+    
+        Metrics::realtime_connection.set "#{Metrics::realtime_config[:event_prefix]}-event-#{uuid}", event.to_json
+        Metrics::realtime_connection.expire "#{Metrics::realtime_config[:event_prefix]}-event-#{uuid}", options[:expire]
+        Metrics::realtime_connection.lpush "#{Metrics::realtime_config[:event_prefix]}-queue", uuid
+
+        log_realtime_metrics_delay start, "track_realtime"
+      end
+    rescue => e
+      metrics_error e, 'Track realtime'
+    end
   end
 
   def get_user_metric_data(field, req = request)
@@ -172,6 +199,35 @@ module MetricsHelper
   
   def user_share_code
     get_user_metric_data(:share_code) || 'no'
+  end
+  
+  def nps_voteable?
+    begin
+      if !Metrics::nps_config[:once_per_user] || (Metrics::nps_config[:once_per_user] && !get_user_metric_data("#{Metrics::nps_config[:event_name]}_voted"))
+        votes = Metrics::nps_cache.get(Metrics::nps_config[:cache_cohort].call).to_i || 0
+        return votes < Metrics::nps_config[:votes_needed]
+      end
+    rescue Exception => e
+      metrics_error e, 'NPS voteable?'
+    end
+  
+    false
+  end
+
+  def nps_vote(score)
+    begin
+      if nps_voteable?
+        track Metrics::nps_config[:event_type], Metrics::nps_config[:event_name], :data => {:score => score.to_f}
+        set_user_metric_data "#{Metrics::nps_config[:event_name]}_voted".to_sym, score.to_f, :overwrite => true
+    
+        Metrics::nps_cache.add Metrics::nps_config[:cache_cohort].call, 0, nil, {:raw => true}
+        Metrics::nps_cache.incr Metrics::nps_config[:cache_cohort].call
+      
+        track_realtime('nps_score', {:score => score.to_f}) if respond_to?(:track_realtime)
+      end
+    rescue Exception => e
+      metrics_error e, 'NPS voting'
+    end
   end
   
 end
