@@ -14,7 +14,7 @@ module MetricsHelper
     if Rails.respond_to?('env') && Rails.env.development?
       raise e
     else
-      puts "#{type} metric error: #{e}"
+      puts "#{type} metric error: #{e.backtrace}"
     end
   end
   
