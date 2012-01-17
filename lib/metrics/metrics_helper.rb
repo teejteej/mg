@@ -94,7 +94,7 @@ module MetricsHelper
   
   def track_realtime(type, data = {}, options = {})
     begin
-      if !(request.user_agent =~ BOTS)    
+      if Metrics::realtime_config && !(request.user_agent =~ BOTS)    
         start = Time.now
         options[:expire] ||= 60
     
