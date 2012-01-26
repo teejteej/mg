@@ -94,7 +94,7 @@ module MetricsHelper
   
   def track_realtime(type, data = {}, options = {})
     begin
-      if Metrics::realtime_config && !(request.user_agent =~ BOTS)    
+      if Metrics::realtime_config && ((defined?(request) && !(request.user_agent =~ BOTS)) || !defined?(request))
         start = Time.now
         options[:expire] ||= 60
     
@@ -102,7 +102,7 @@ module MetricsHelper
     
         event = {:_type => type}
         event.merge! data
-        event[:_session] = AARRR(request.env).id || request.session_options[:id]
+        event[:_session] = AARRR(request.env).id || request.session_options[:id] if defined?(request)
     
         Metrics::realtime_connection.set "#{Metrics::realtime_config[:event_prefix]}-event-#{uuid}", event.to_json
         Metrics::realtime_connection.expire "#{Metrics::realtime_config[:event_prefix]}-event-#{uuid}", options[:expire]
