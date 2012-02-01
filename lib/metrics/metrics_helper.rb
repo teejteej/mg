@@ -27,11 +27,7 @@ module MetricsHelper
   end
 
   def metrics_error(e, type = 'Track')
-    if Rails.respond_to?('env') && Rails.env.development?
-      raise e
-    else
-      puts "#{type} metric error: #{e}"
-    end
+    puts "#{type} metric error: #{e}"
   end
   
   def set_metrics_identity
