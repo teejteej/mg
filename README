@@ -26,6 +26,11 @@ Metrics::init('localhost', 27017, 'metrics', {:no_bounce_seconds => 10, :long_vi
 To track landing bounces and long visits, use this at your landing action:
 session[:visit_start] ||= Time.now
 
+In each Metrics::init or Metrics::init_realtime, two extra options can be added:
+	:log_delays_as_realtime_event => 'metrics_delay', :log_delays_realtime_sample => 0.1
+	If these two are set, the time needed to call track or track_realtime is automatically tracked as a realtime event, with the delay in MS as extra parameter to track in the fnordmetric event handler.
+	log_delays_realtime_sample => 0.1 means that only 1/10th of all calls to track / track_realtime are sampled with a delay, using 1.0 would mean all is sampled.
+
 === Tracking realtime metrics
 
 Metrics::init_realtime('localhost', 6379, {:event_prefix => 'fnordmetric'})

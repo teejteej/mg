@@ -3,11 +3,27 @@ module MetricsHelper
   BOTS = /(bot|^$|spider|AACrawler|HttpClient|SWRLinkchecker|NING|Kimengi|InAGist|Extractor-Engine|AACrawler|SWRLinkchecker|W3C_Validator|wget|curl|Trend Micro|facebookexternalhit|URL Control|panopta|FlaxCrawler|YahooCacheSystem|xenu link|VB Project|ruby|rganalytics|MFE_expand|AppEngine-Google|DailyPerfect|lwp-request|Mail.RU|PageGetter|Harvester|unshort.me|UnwindFetchor|Mediapartners|MetaURI|JS-Kit|urlresolver|RockMeltEmbedService|LongURL|PostRank|ia_archiver|Summify|urllib|Baidu|Gigabot|Googlebot|libwww-perl|lwp-trivial|msnbot|pingdom|SiteUptime|Slurp|WordPress|ZIBB|ZyBorg)/i
 
   def log_metrics_delay(start, method)
-    puts "#{method} metrics time: #{(Time.now-start)*1000} ms" if Metrics::config[:log_delays]
+    delay = (Time.now - start) * 1000
+
+    if Metrics::config[:log_delays]
+      puts "#{method} metrics time: #{delay} ms"
+    end
+    
+    if Metrics::config[:log_delays_as_realtime_event] && rand <= Metrics::config[:log_delays_realtime_sample]
+      track_realtime Metrics::config[:log_delays_as_realtime_event], {:delay => delay}, :skip_log_delay => true
+    end
   end
 
   def log_realtime_metrics_delay(start, method)
-    puts "#{method} realtime metrics time: #{(Time.now-start)*1000} ms" if Metrics::realtime_config[:log_delays]
+    delay = (Time.now - start) * 1000
+
+    if Metrics::realtime_config[:log_delays]
+      puts "#{method} realtime metrics time: #{delay} ms"
+    end
+
+    if Metrics::realtime_config[:log_delays_as_realtime_event] && rand <= Metrics::realtime_config[:log_delays_realtime_sample]
+      track_realtime Metrics::realtime_config[:log_delays_as_realtime_event], {:delay => delay}, :skip_log_delay => true
+    end
   end
 
   def metrics_error(e, type = 'Track')
@@ -102,13 +118,13 @@ module MetricsHelper
     
         event = {:_type => type}
         event.merge! data
-        event[:_session] = AARRR(request.env).id || request.session_options[:id] if defined?(request)
-    
+        event[:_session] = AARRR(request.env).id || request.session_options[:id] if defined?(request) && options[:add_session]
+
         Metrics::realtime_connection.set "#{Metrics::realtime_config[:event_prefix]}-event-#{uuid}", event.to_json
         Metrics::realtime_connection.expire "#{Metrics::realtime_config[:event_prefix]}-event-#{uuid}", options[:expire]
         Metrics::realtime_connection.lpush "#{Metrics::realtime_config[:event_prefix]}-queue", uuid
 
-        log_realtime_metrics_delay start, "track_realtime"
+        log_realtime_metrics_delay start, "track_realtime" if !options[:skip_log_delay]
       end
     rescue => e
       metrics_error e, 'Track realtime'
