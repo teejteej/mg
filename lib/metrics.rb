@@ -1,5 +1,6 @@
 require 'metrics/version'
 require 'metrics/railtie' if defined?(Rails)
+require 'ruby-debug'
 
 module Metrics
   
@@ -14,16 +15,23 @@ module Metrics
     # For NPS
     attr_accessor :nps_config
     attr_accessor :nps_cache
+
+    attr_accessor :logger
     
     def init(host, port, db, config = {})
       begin
+        self.logger = defined?(Rails) ? Logger.new(Rails.root.join('log/metrics.log')) : Logger.new(STDOUT)
+        self.logger.formatter = proc do |severity, datetime, progname, msg|
+          "#{datetime.iso8601} [#{severity}] #{msg}\n"
+        end
+        
         self.config = config
 
         AARRR.connection = Mongo::Connection.new host, port
         AARRR::Config.cookie_expiration = 3600*24*999
         AARRR::Config.database_name = db
 
-        puts "Metrics initialized: #{host}:#{port}@#{db} [#{config}]" if self.config[:log_delays]
+        log "Metrics initialized: #{host}:#{port}@#{db} [#{config}]" if self.config[:log_delays]
 
         # Patch AARRR
         patch = <<-PATCH
@@ -41,7 +49,7 @@ module Metrics
         if !(defined?(Rails) && Rails.env.development?)
           raise e
         else
-          puts "Warning: track metrics not enabled (no MongoDB available)."
+          logger.warn "Track metrics not enabled (no MongoDB available)."
         end
       end
     end
@@ -51,12 +59,12 @@ module Metrics
         self.realtime_config = {:event_prefix => 'fnordmetric'}.merge(config)
         self.realtime_connection = Redis.new :host => host, :port => port
 
-        puts "Realtime Metrics initialized: #{host}:#{port} [#{realtime_config}]" if self.realtime_config[:log_delays]
+        logger.info "Realtime Metrics initialized: #{host}:#{port} [#{realtime_config}]" if self.realtime_config[:log_delays]
       rescue => e
         if !(defined?(Rails) && Rails.env.development?)
           raise e
         else
-          puts "Warning: track_realtime metrics not enabled (no Redis available)"
+          logger.warn "track_realtime metrics not enabled (no Redis available)"
         end
       end
     end
@@ -66,12 +74,12 @@ module Metrics
         self.nps_config = {:cache_server => '127.0.0.1:11211', :votes_needed => 200, :event_name => 'nps_score_1', :event_type => 'nps_score', :cache_cohort => proc{'nps_score'}, :once_per_user => true}.merge(config)
         self.nps_cache = Dalli::Client.new config[:cache_server]
 
-        puts "NPS Survey initialized: #{config}" if self.config[:log_delays]
+        logger.info "NPS Survey initialized: #{config}" if self.config[:log_delays]
       rescue => e
         if !(defined?(Rails) && Rails.env.development?)
           raise e
         else
-          puts "Warning: NPS not enabled (no Memcached available)"
+          logger.warn "NPS not enabled (no Memcached available)"
         end
       end
     end
