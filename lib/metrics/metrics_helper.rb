@@ -6,7 +6,7 @@ module MetricsHelper
     delay = (Time.now - start) * 1000
 
     if Metrics::config[:log_delays]
-      Metrics::logger.info "#{method} metrics time: #{delay} ms"
+      Metrics::logger.info "#{method} metrics time: #{delay} ms" if Metrics::logger
     end
     
     if Metrics::config[:log_delays_as_realtime_event] && rand <= Metrics::config[:log_delays_realtime_sample]
@@ -18,7 +18,7 @@ module MetricsHelper
     delay = (Time.now - start) * 1000
 
     if Metrics::realtime_config[:log_delays]
-      Metrics::logger.info "#{method} realtime metrics time: #{delay} ms"
+      Metrics::logger.info "#{method} realtime metrics time: #{delay} ms" if Metrics::logger
     end
 
     if Metrics::realtime_config[:log_delays_as_realtime_event] && rand <= Metrics::realtime_config[:log_delays_realtime_sample]
@@ -27,7 +27,7 @@ module MetricsHelper
   end
 
   def metrics_error(e, type = 'Track')
-    Metrics::logger.error "#{type} metric error: #{e}"
+    Metrics::logger.error "#{type} metric error: #{e}" if Metrics::logger
   end
   
   def set_metrics_identity

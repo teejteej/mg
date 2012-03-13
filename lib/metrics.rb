@@ -46,10 +46,10 @@ module Metrics
 
         eval patch
       rescue => e
-        if !(defined?(Rails) && Rails.env.development?)
+        if !defined?(Rails) || (defined?(Rails) && Rails.env.production?)
           raise e
         else
-          logger.warn "Track metrics not enabled (no MongoDB available)."
+          logger.warn "Track metrics not enabled (no MongoDB available)." if logger
         end
       end
     end
@@ -59,12 +59,12 @@ module Metrics
         self.realtime_config = {:event_prefix => 'fnordmetric'}.merge(config)
         self.realtime_connection = Redis.new :host => host, :port => port
 
-        logger.info "Realtime Metrics initialized: #{host}:#{port} [#{realtime_config}]" if self.realtime_config[:log_delays]
+        logger.info "Realtime Metrics initialized: #{host}:#{port} [#{realtime_config}]" if self.realtime_config[:log_delays] && logger
       rescue => e
-        if !(defined?(Rails) && Rails.env.development?)
+        if !defined?(Rails) || (defined?(Rails) && Rails.env.production?)
           raise e
         else
-          logger.warn "track_realtime metrics not enabled (no Redis available)"
+          logger.warn "track_realtime metrics not enabled (no Redis available)" if logger
         end
       end
     end
@@ -74,12 +74,12 @@ module Metrics
         self.nps_config = {:cache_server => '127.0.0.1:11211', :votes_needed => 200, :event_name => 'nps_score_1', :event_type => 'nps_score', :cache_cohort => proc{'nps_score'}, :once_per_user => true}.merge(config)
         self.nps_cache = Dalli::Client.new config[:cache_server]
 
-        logger.info "NPS Survey initialized: #{config}" if self.config[:log_delays]
+        logger.info "NPS Survey initialized: #{config}" if self.config[:log_delays] && logger
       rescue => e
-        if !(defined?(Rails) && Rails.env.development?)
+        if !defined?(Rails) || (defined?(Rails) && Rails.env.production?)
           raise e
         else
-          logger.warn "NPS not enabled (no Memcached available)"
+          logger.warn "NPS not enabled (no Memcached available)" if logger
         end
       end
     end
