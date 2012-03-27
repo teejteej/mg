@@ -193,8 +193,8 @@ module MetricsHelper
     begin
       if !(request.user_agent =~ BOTS)
         ab_tests = get_user_metric_data(:ab_tests) || {}
-        if ab_tests[test_name].blank?
-          ab_tests[test_name] = in_test
+        if ab_tests[test_name.to_s].blank?
+          ab_tests[test_name.to_s] = in_test
           set_user_metric_data :ab_tests, ab_tests
         end
       end
