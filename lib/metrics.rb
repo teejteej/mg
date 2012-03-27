@@ -1,6 +1,5 @@
 require 'metrics/version'
 require 'metrics/railtie' if defined?(Rails)
-require 'ruby-debug'
 
 module Metrics
   
