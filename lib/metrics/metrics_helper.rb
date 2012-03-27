@@ -79,7 +79,7 @@ module MetricsHelper
     end
   end
 
-  def track(event_type, event_name, options = {}, req = request)
+  def track_metric(event_type, event_name, options = {}, req = request)
     begin
       start = Time.now
       
@@ -99,7 +99,7 @@ module MetricsHelper
     end
   end
 
-  def track!(event_type, event_name, options = {})
+  def track_metric!(event_type, event_name, options = {})
     options[:complete] = true
     track event_type, event_name, options
   end
@@ -182,7 +182,13 @@ module MetricsHelper
   end
 
   def ab_test_with_metrics(test_name, alternatives = nil, options = {})
-    in_test = ab_test test_name, alternatives, options
+    if Metrics::config[:ab_framework] == :abingo || Metrics::config[:ab_framework] == :abongo
+      in_test = ab_test test_name, alternatives, options
+    elsif Metrics::config[:ab_framework] == :vanity
+      in_test = ab_test test_name
+    else
+      metrics_error "Invalid :ab_framework param passed to Metrics::init: #{Metrics::config[:ab_framework]}"
+    end
   
     begin
       if !(request.user_agent =~ BOTS)
