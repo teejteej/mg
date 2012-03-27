@@ -1,7 +1,7 @@
 # (Optional) Installing without Gemfile
 	- http://raflabs.com/blogs/silence-is-foo/2010/07/19/installing-a-gem-fork-from-github-source/
 
-# Add to your Gemfile:
+# Add to your Gemfile
 
 	gem 'aarrr', :git => 'git://github.com/teejteej/aarrr.git'
 	gem 'metrics', :git => 'git://github.com/teejteej/mg.git'
@@ -13,16 +13,16 @@
 	gem 'kgio'
 	gem 'uuidtools'
 
-# Add to your ApplicationController:
+# Add to your ApplicationController
 
 	before_filter :set_metrics_identity
 	before_filter :track_extra_metrics
 
-# Add to your environments:
+# Add to your environments
 
 	Metrics::init('localhost', 27017, 'metrics', {:no_bounce_seconds => 10, :long_visit_seconds => 120, :log_delays => true})
 
-# Optionally:
+# Optionally
 
 - When using a/b testing, init your environment like this (where `:ab_framework` can be `:vanity`, `:abingo` or `:abongo`):
 
