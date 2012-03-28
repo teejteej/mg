@@ -30,7 +30,7 @@ module Metrics
         AARRR::Config.cookie_expiration = 3600*24*999
         AARRR::Config.database_name = db
 
-        log "Metrics initialized: #{host}:#{port}@#{db} [#{config}]" if self.config[:log_delays]
+        logger.info "Metrics initialized: #{host}:#{port}@#{db} [#{config}]" if self.config[:log_delays] && logger
 
         # Patch AARRR
         patch = <<-PATCH
