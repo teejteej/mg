@@ -2,14 +2,14 @@ module MetricsHelper
 
   BOTS = /(bot|^$|spider|AACrawler|HttpClient|SWRLinkchecker|NING|Kimengi|InAGist|Extractor-Engine|AACrawler|SWRLinkchecker|W3C_Validator|wget|curl|Trend Micro|facebookexternalhit|URL Control|panopta|FlaxCrawler|YahooCacheSystem|xenu link|VB Project|ruby|rganalytics|MFE_expand|AppEngine-Google|DailyPerfect|lwp-request|Mail.RU|PageGetter|Harvester|unshort.me|UnwindFetchor|Mediapartners|MetaURI|JS-Kit|urlresolver|RockMeltEmbedService|LongURL|PostRank|ia_archiver|Summify|urllib|Baidu|Gigabot|Googlebot|libwww-perl|lwp-trivial|msnbot|pingdom|SiteUptime|Slurp|WordPress|ZIBB|ZyBorg)/i
 
-  def log_metrics_delay(start, method, log_realtime = true)
+  def log_metrics_delay(start, method)
     delay = (Time.now - start) * 1000
 
     if Metrics::config[:log_delays]
       Metrics::logger.info "#{method} metrics time: #{delay} ms" if Metrics::logger
     end
     
-    if log_realtime && Metrics::config[:log_delays_as_realtime_event] && rand <= Metrics::config[:log_delays_realtime_sample]
+    if Metrics::config[:log_delays_as_realtime_event] && rand <= Metrics::config[:log_delays_realtime_sample]
       track_realtime Metrics::config[:log_delays_as_realtime_event], {:delay => delay}, :skip_log_delay => true
     end
   end
@@ -201,7 +201,7 @@ module MetricsHelper
         end
       end
 
-      log_metrics_delay start, "ab_test_with_metrics", false
+      log_metrics_delay start, "ab_test_with_metrics"
     rescue Exception => e
       metrics_error e
     end
