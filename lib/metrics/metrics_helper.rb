@@ -2,14 +2,14 @@ module MetricsHelper
 
   BOTS = /(bot|^$|spider|AACrawler|HttpClient|SWRLinkchecker|NING|Kimengi|InAGist|Extractor-Engine|AACrawler|SWRLinkchecker|W3C_Validator|wget|curl|Trend Micro|facebookexternalhit|URL Control|panopta|FlaxCrawler|YahooCacheSystem|xenu link|VB Project|ruby|rganalytics|MFE_expand|AppEngine-Google|DailyPerfect|lwp-request|Mail.RU|PageGetter|Harvester|unshort.me|UnwindFetchor|Mediapartners|MetaURI|JS-Kit|urlresolver|RockMeltEmbedService|LongURL|PostRank|ia_archiver|Summify|urllib|Baidu|Gigabot|Googlebot|libwww-perl|lwp-trivial|msnbot|pingdom|SiteUptime|Slurp|WordPress|ZIBB|ZyBorg)/i
 
-  def log_metrics_delay(start, method)
+  def log_metrics_delay(start, method, log_realtime = true)
     delay = (Time.now - start) * 1000
 
     if Metrics::config[:log_delays]
       Metrics::logger.info "#{method} metrics time: #{delay} ms" if Metrics::logger
     end
     
-    if Metrics::config[:log_delays_as_realtime_event] && rand <= Metrics::config[:log_delays_realtime_sample]
+    if log_realtime && Metrics::config[:log_delays_as_realtime_event] && rand <= Metrics::config[:log_delays_realtime_sample]
       track_realtime Metrics::config[:log_delays_as_realtime_event], {:delay => delay}, :skip_log_delay => true
     end
   end
@@ -58,20 +58,20 @@ module MetricsHelper
       if !(request.user_agent =~ BOTS)
         if !request.session[:visit_start].blank? && !request.session[:no_landing_bounce_tracked]
           if (Time.now-request.session[:visit_start]) > (Metrics::config[:no_bounce_seconds] || 10).seconds
-            track :acquisition, :no_landing_bounce, {}, request
+            track_metric :acquisition, :no_landing_bounce, {}, request
             request.session[:no_landing_bounce_tracked] = true
           end
         end
 
         if !request.session[:visit_start].blank? && !request.session[:long_visit_tracked]
           if (Time.now-request.session[:visit_start]) > (Metrics::config[:long_visit_seconds] || 120).seconds
-            track :acquisition, :long_visit, {}, request
+            track_metric :acquisition, :long_visit, {}, request
             request.session[:long_visit_tracked] = true
           end
         end
 
         unless request.params['vt'].blank?
-          track :referral, :referrer, {:referral_code => request.params['vt'][0..10]}, request
+          track_metric :referral, :referrer, {:referral_code => request.params['vt'][0..10]}, request
         end
       end
     rescue => e
@@ -101,7 +101,7 @@ module MetricsHelper
 
   def track_metric!(event_type, event_name, options = {})
     options[:complete] = true
-    track event_type, event_name, options
+    track_metric event_type, event_name, options
   end
   
   def track_realtime(type, data = {}, options = {})
@@ -182,6 +182,8 @@ module MetricsHelper
   end
 
   def ab_test_with_metrics(test_name, alternatives = nil, options = {})
+    start = Time.now
+    
     if Metrics::config[:ab_framework] == :abingo || Metrics::config[:ab_framework] == :abongo
       in_test = ab_test test_name, alternatives, options
     elsif Metrics::config[:ab_framework] == :vanity
@@ -198,10 +200,12 @@ module MetricsHelper
           set_user_metric_data :ab_tests, ab_tests
         end
       end
+
+      log_metrics_delay start, "ab_test_with_metrics", false
     rescue Exception => e
       metrics_error e
     end
-  
+
     in_test
   end
 
@@ -235,7 +239,7 @@ module MetricsHelper
   def nps_vote(score)
     begin
       if nps_voteable?
-        track Metrics::nps_config[:event_type], Metrics::nps_config[:event_name], :data => {:score => score.to_i}
+        track_metric Metrics::nps_config[:event_type], Metrics::nps_config[:event_name], :data => {:score => score.to_i}
         set_user_metric_data "#{Metrics::nps_config[:event_name]}_voted".to_sym, score.to_i, :overwrite => true
     
         Metrics::nps_cache.add Metrics::nps_config[:cache_cohort].call, 0, nil, {:raw => true}
