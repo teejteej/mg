@@ -3,8 +3,8 @@
 
 # Add to your Gemfile
 
-	gem 'aarrr', :git => 'http://github.com/teejteej/aarrr.git'
-	gem 'metrics', :git => 'http://github.com/teejteej/mg.git'
+	gem 'aarrr', :git => 'git://github.com/teejteej/aarrr.git'
+	gem 'metrics', :git => 'git://github.com/teejteej/mg.git'
 
 	gem 'mongo'
 	gem 'bson_ext'
