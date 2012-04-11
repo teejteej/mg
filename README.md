@@ -36,6 +36,9 @@
 	        - `Metrics::init('localhost', 27017, 'metrics', {:no_bounce_seconds => 10, :long_visit_seconds => 120, :log_delays => true, :ab_framework => :abongo})`
 	        - Then to run any a/b test and also set in metrics which variation this use has seen use `ab_test_with_metrics 'some_test', ['var1, 'var2'], :conversion => 'some_conversion'`
 
+# A/B testing & keeping track of this in metrics
+	- `ab_test_with_metrics 'test1', ['var1', 'var2'], :conversion => 'test1_converted'`. This will do an A/B test, and store the seen variation for the experiment with the metric user.
+
 # Tracking realtime metrics
 
 	- `Metrics::init_realtime('localhost', 6379, {:event_prefix => 'fnordmetric'})`
