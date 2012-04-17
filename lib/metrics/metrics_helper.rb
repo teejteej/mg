@@ -117,8 +117,8 @@ module MetricsHelper
         event[:_session] = AARRR(request.env).id || request.session_options[:id] if defined?(request) && options[:add_session]
 
         Metrics::realtime_connection.set "#{Metrics::realtime_config[:event_prefix]}-event-#{uuid}", event.to_json
-        Metrics::realtime_connection.expire "#{Metrics::realtime_config[:event_prefix]}-event-#{uuid}", options[:expire]
         Metrics::realtime_connection.lpush "#{Metrics::realtime_config[:event_prefix]}-queue", uuid
+        Metrics::realtime_connection.expire "#{Metrics::realtime_config[:event_prefix]}-event-#{uuid}", options[:expire]
 
         log_realtime_metrics_delay start, "track_realtime" if !options[:skip_log_delay]
       end
