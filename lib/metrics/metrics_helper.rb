@@ -58,20 +58,20 @@ module MetricsHelper
       if !(request.user_agent =~ BOTS)
         if !request.session[:visit_start].blank? && !request.session[:no_landing_bounce_tracked]
           if (Time.now-request.session[:visit_start]) > (Metrics::config[:no_bounce_seconds] || 10).seconds
-            track :acquisition, :no_landing_bounce, {}, request
+            track_metric :acquisition, :no_landing_bounce, {}, request
             request.session[:no_landing_bounce_tracked] = true
           end
         end
 
         if !request.session[:visit_start].blank? && !request.session[:long_visit_tracked]
           if (Time.now-request.session[:visit_start]) > (Metrics::config[:long_visit_seconds] || 120).seconds
-            track :acquisition, :long_visit, {}, request
+            track_metric :acquisition, :long_visit, {}, request
             request.session[:long_visit_tracked] = true
           end
         end
 
         unless request.params['vt'].blank?
-          track :referral, :referrer, {:referral_code => request.params['vt'][0..10]}, request
+          track_metric :referral, :referrer, {:referral_code => request.params['vt'][0..10]}, request
         end
       end
     rescue => e
@@ -79,7 +79,7 @@ module MetricsHelper
     end
   end
 
-  def track(event_type, event_name, options = {}, req = request)
+  def track_metric(event_type, event_name, options = {}, req = request)
     begin
       start = Time.now
       
@@ -99,9 +99,9 @@ module MetricsHelper
     end
   end
 
-  def track!(event_type, event_name, options = {})
+  def track_metric!(event_type, event_name, options = {})
     options[:complete] = true
-    track event_type, event_name, options
+    track_metric event_type, event_name, options
   end
   
   def track_realtime(type, data = {}, options = {})
@@ -182,20 +182,30 @@ module MetricsHelper
   end
 
   def ab_test_with_metrics(test_name, alternatives = nil, options = {})
-    in_test = ab_test test_name, alternatives, options
+    start = Time.now
+    
+    if Metrics::config[:ab_framework] == :abingo || Metrics::config[:ab_framework] == :abongo
+      in_test = ab_test test_name, alternatives, options
+    elsif Metrics::config[:ab_framework] == :vanity
+      in_test = ab_test test_name
+    else
+      metrics_error "Invalid :ab_framework param passed to Metrics::init: #{Metrics::config[:ab_framework]}"
+    end
   
     begin
       if !(request.user_agent =~ BOTS)
         ab_tests = get_user_metric_data(:ab_tests) || {}
-        if ab_tests[test_name].blank?
-          ab_tests[test_name] = in_test
+        if ab_tests[test_name.to_s].blank?
+          ab_tests[test_name.to_s] = in_test
           set_user_metric_data :ab_tests, ab_tests
         end
       end
+
+      log_metrics_delay start, "ab_test_with_metrics"
     rescue Exception => e
       metrics_error e
     end
-  
+
     in_test
   end
 
@@ -229,7 +239,7 @@ module MetricsHelper
   def nps_vote(score)
     begin
       if nps_voteable?
-        track Metrics::nps_config[:event_type], Metrics::nps_config[:event_name], :data => {:score => score.to_i}
+        track_metric Metrics::nps_config[:event_type], Metrics::nps_config[:event_name], :data => {:score => score.to_i}
         set_user_metric_data "#{Metrics::nps_config[:event_name]}_voted".to_sym, score.to_i, :overwrite => true
     
         Metrics::nps_cache.add Metrics::nps_config[:cache_cohort].call, 0, nil, {:raw => true}
