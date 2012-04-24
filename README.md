@@ -20,12 +20,13 @@
 
 # Tracking metrics
 
-	- Add to your environment: `Metrics::init('localhost', 27017, 'metrics', {:no_bounce_seconds => 10, :long_visit_seconds => 120, :log_delays => true})`
+	- Add to your environment: `Metrics::init('localhost', 27017, 'metrics', {:no_bounce_seconds => 10, :long_visit_seconds => 120, :log_delays => true, :log_delays_as_realtime_event => 'metrics_delay', :log_delays_realtime_sample => 0.1, :log_errors_as_realtime_event => 'metrics_error'})`
+		- Where `log_delays`, `log_delays_as_realtime_event`, `log_delays_realtime_sample` and `log_errors_as_realtime_event` are optional configuration parameters.
 	- `track_metric :activation, 'some_event'`
 	- `track_metric :activation, :some_event`
 	- `track_metric 'some_category', 'some_event', :data => {'param1' => 'value1'}`
 	- `set_user_metric_data :flash_version, '11.2'` or `set_user_metric_data({'flash_version' => '11.2'})`. Set extra data for user in metrics, like flash version, age, etc. __Note__: the first param (key) must always be a symbol (`"something".to_sym`).
-	- `set_user_metric_data :flash_version, '11.2', :overwrite => true`. Overwrite the value if it doesn't exist yet, defaults to not overwrite the value if the key already exists. If the key doesn't exists, default is to write it.
+	- `set_user_metric_data :flash_version, '11.2', :overwrite => true`. Overwrite the value, even if it exist already. Defaults to false (not overwrite the value if the key already exists). If the key doesn't exists yet, default is to write it.
 	- `[{:key => :some_param_1, :value => 'some_value_1', :overwrite => false}, {:key => :some_param_2, :value => 'some_value_2', :overwrite => false}]`. Set multiple key/values at once.
 	- `link_current_metrics_user current_user`. Links current_user from the app db to the metrics user. Note that current_user must have an `id` method.
 	- `user_share_code`. Return the share code for this user. To be used like this: `http://www.yourapp.com/?vt=<%= user_share_code %>`, or any other url. As long as the param `vt` is set, it will get tracked as a viral referrer.
@@ -41,7 +42,8 @@
 
 # Tracking realtime metrics
 
-	- `Metrics::init_realtime('localhost', 6379, {:event_prefix => 'fnordmetric'})`
+	- `Metrics::init_realtime('localhost', 6379, {:event_prefix => 'fnordmetric', :log_delays => false, :log_delays_as_realtime_event => 'realtime_metrics_delay', :log_delays_realtime_sample => 0.1})`
+		- Where `log_delays`, `log_delays_as_realtime_event` and `log_delays_realtime_sample` are optional configuration parameters.
 	- `track_realtime 'pageview', {}, :add_session => true`. Track realtime, unique per session (visitors per day in this case; not unique visitors per day)
 	- `track_realtime 'some_realtime_event'`
 	- `track_realtime('some_realtime_event', {:my_param => 'my_value'})`. Track realtime with extra parameter, that can be used in realtime backend.

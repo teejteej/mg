@@ -26,8 +26,12 @@ module MetricsHelper
     end
   end
 
-  def metrics_error(e, type = 'Track')
+  def metrics_error(e, type = 'Track', skip_track_realtime = false)
     Metrics::logger.error "#{type} metric error: #{e}" if Metrics::logger
+
+    if !skip_track_realtime && Metrics::config[:log_errors_as_realtime_event]
+      track_realtime Metrics::config[:log_errors_as_realtime_event], {:type => type}, :skip_log_delay => true
+    end    
   end
   
   def set_metrics_identity
@@ -110,7 +114,7 @@ module MetricsHelper
         start = Time.now
         options[:expire] ||= 60
     
-        uuid = UUIDTools::UUID.timestamp_create.to_s
+        uuid = UUIDTools::UUID.random_create.to_s
     
         event = {:_type => type}
         event.merge! data
@@ -123,7 +127,7 @@ module MetricsHelper
         log_realtime_metrics_delay start, "track_realtime" if !options[:skip_log_delay]
       end
     rescue => e
-      metrics_error e, 'Track realtime'
+      metrics_error e, 'Track realtime', true
     end
   end
 
@@ -182,22 +186,24 @@ module MetricsHelper
   end
 
   def ab_test_with_metrics(test_name, alternatives = nil, options = {})
-    start = Time.now
-    
-    if Metrics::config[:ab_framework] == :abingo || Metrics::config[:ab_framework] == :abongo
-      in_test = ab_test test_name, alternatives, options
-    elsif Metrics::config[:ab_framework] == :vanity
-      in_test = ab_test test_name
-    else
-      metrics_error "Invalid :ab_framework param passed to Metrics::init: #{Metrics::config[:ab_framework]}"
-    end
-  
+    in_test = nil
+
     begin
+      start = Time.now
+    
+      if Metrics::config[:ab_framework] == :abingo || Metrics::config[:ab_framework] == :abongo
+        in_test = ab_test test_name, alternatives, options
+      elsif Metrics::config[:ab_framework] == :vanity
+        in_test = ab_test test_name
+      else
+        metrics_error "Invalid :ab_framework param passed to Metrics::init: #{Metrics::config[:ab_framework]}"
+      end
+  
       if !(request.user_agent =~ BOTS)
         ab_tests = get_user_metric_data(:ab_tests) || {}
         if ab_tests[test_name.to_s].blank?
           ab_tests[test_name.to_s] = in_test
-          set_user_metric_data :ab_tests, ab_tests
+          set_user_metric_data :ab_tests, ab_tests, :overwrite => true
         end
       end
 
@@ -206,7 +212,7 @@ module MetricsHelper
       metrics_error e
     end
 
-    in_test
+    in_test ? in_test : (alternatives ? alternatives.first : nil)
   end
 
   def link_current_metrics_user(current_user)
