@@ -39,6 +39,7 @@
 
 # A/B testing & keeping track of this in metrics
 	- `ab_test_with_metrics 'test1', ['var1', 'var2'], :conversion => 'test1_converted'`. This will do an A/B test, and store the seen variation for the experiment with the metric user.
+	- `ab_convert! 'test1'`. This will track a conversion for test1.
 
 # Tracking realtime metrics
 
