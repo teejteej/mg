@@ -185,6 +185,18 @@ module MetricsHelper
     end
   end
 
+  def ab_convert!(conversion)
+    begin
+      if Metrics::config[:ab_framework] == :abongo
+        bongo! conversion
+      elsif Metrics::config[:ab_framework] == :abingo
+        bingo! conversion
+      end
+    rescue Exception => e
+      metrics_error e, 'AB Conversion'
+    end
+  end
+  
   def ab_test_with_metrics(test_name, alternatives = nil, options = {})
     in_test = nil
 
