@@ -5,6 +5,12 @@ module Metrics
   
   class << self
     
+    attr_writer :config
+    attr_writer :realtime_config
+    attr_writer :realtime_connection
+    attr_writer :nps_config
+    attr_writer :nps_cache
+    
     # For metrics
     def config
       @config || {}
@@ -39,8 +45,6 @@ module Metrics
           "#{datetime.iso8601} [#{severity}] #{msg}\n"
         end
         
-        self.config = config
-
         AARRR.connection = Mongo::Connection.new host, port
         AARRR::Config.cookie_expiration = 3600*24*999
         AARRR::Config.database_name = db
