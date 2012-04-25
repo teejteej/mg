@@ -4,21 +4,36 @@ require 'metrics/railtie' if defined?(Rails)
 module Metrics
   
   class << self
-    # For aarrr
-    attr_accessor :config
+    
+    # For metrics
+    def config
+      @config || {}
+    end
     
     # For fnordmetrics
-    attr_accessor :realtime_config
-    attr_accessor :realtime_connection
-
+    def realtime_config
+      @realtime_config || {}
+    end
+    
+    def realtime_connection
+      @realtime_connection || {}
+    end
+    
     # For NPS
-    attr_accessor :nps_config
-    attr_accessor :nps_cache
-
+    def nps_config
+      @nps_config || {}
+    end
+    
+    def nps_cache
+      @nps_cache || {}
+    end
+    
     attr_accessor :logger
     
     def init(host, port, db, config = {})
       begin
+        self.config = config
+        
         self.logger = defined?(Rails) ? Logger.new(Rails.root.join('log/metrics.log')) : Logger.new(STDOUT)
         self.logger.formatter = proc do |severity, datetime, progname, msg|
           "#{datetime.iso8601} [#{severity}] #{msg}\n"

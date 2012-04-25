@@ -110,7 +110,7 @@ module MetricsHelper
   
   def track_realtime(type, data = {}, options = {})
     begin
-      if Metrics::realtime_config && ((defined?(request) && !(request.user_agent =~ BOTS)) || !defined?(request))
+      if (defined?(request) && !(request.user_agent =~ BOTS)) || !defined?(request)
         start = Time.now
         options[:expire] ||= 60
     
@@ -243,7 +243,7 @@ module MetricsHelper
   
   def nps_voteable?
     begin
-      if !Metrics::nps_config[:once_per_user] || (Metrics::nps_config[:once_per_user] && !get_user_metric_data("#{Metrics::nps_config[:event_name]}_voted"))
+      if !Metrics::nps_config.empty? && (!Metrics::nps_config[:once_per_user] || (Metrics::nps_config[:once_per_user] && !get_user_metric_data("#{Metrics::nps_config[:event_name]}_voted")))
         votes = Metrics::nps_cache.get(Metrics::nps_config[:cache_cohort].call).to_i || 0
         return votes < Metrics::nps_config[:votes_needed]
       end
