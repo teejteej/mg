@@ -48,6 +48,8 @@ module MetricsHelper
           ]
           data << {:key => :first_visit_source, :value => params[:src], :overwrite => false} unless params[:src].blank?
           set_user_metric_data data
+          
+          track_metric :referral, :referrer, {:referral_code => request.params['vt'][0..10]}, request unless request.params['vt'].blank?
         end
       end
 
@@ -72,10 +74,6 @@ module MetricsHelper
             track_metric :acquisition, :long_visit, {}, request
             request.session[:long_visit_tracked] = true
           end
-        end
-
-        unless request.params['vt'].blank?
-          track_metric :referral, :referrer, {:referral_code => request.params['vt'][0..10]}, request
         end
       end
     rescue => e
