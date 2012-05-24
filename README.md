@@ -22,6 +22,7 @@
 
 	- Add to your environment: `Metrics::init('localhost', 27017, 'metrics', {:no_bounce_seconds => 10, :long_visit_seconds => 120, :log_delays => true, :log_delays_as_realtime_event => 'metrics_delay', :log_delays_realtime_sample => 0.1, :log_errors_as_realtime_event => 'metrics_error'})`
 		- Where `log_delays`, `log_delays_as_realtime_event`, `log_delays_realtime_sample` and `log_errors_as_realtime_event` are optional configuration parameters.
+		- `exception_on_init_fail` can be set `true` to all `init` methods methods, to raise exceptions when connection on initialization fails. Defaults to `false`.
 	- `track_metric :activation, 'some_event'`
 	- `track_metric :activation, :some_event`
 	- `track_metric 'some_category', 'some_event', :data => {'param1' => 'value1'}`

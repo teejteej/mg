@@ -64,7 +64,7 @@ module Metrics
 
         eval patch
       rescue => e
-        if !defined?(Rails) || (defined?(Rails) && Rails.env.production?)
+        if self.config[:exception_on_init_fail] && (!defined?(Rails) || (defined?(Rails) && Rails.env.production?))
           raise e
         else
           logger.warn "Track metrics not enabled (no MongoDB available)." if logger
@@ -79,7 +79,7 @@ module Metrics
 
         logger.info "Realtime Metrics initialized: #{host}:#{port} [#{realtime_config}]" if self.realtime_config[:log_delays] && logger
       rescue => e
-        if !defined?(Rails) || (defined?(Rails) && Rails.env.production?)
+        if self.realtime_config[:exception_on_init_fail] && (!defined?(Rails) || (defined?(Rails) && Rails.env.production?))
           raise e
         else
           logger.warn "track_realtime metrics not enabled (no Redis available)" if logger
@@ -94,7 +94,7 @@ module Metrics
 
         logger.info "NPS Survey initialized: #{config}" if self.config[:log_delays] && logger
       rescue => e
-        if !defined?(Rails) || (defined?(Rails) && Rails.env.production?)
+        if self.config[:exception_on_init_fail] && (!defined?(Rails) || (defined?(Rails) && Rails.env.production?))
           raise e
         else
           logger.warn "NPS not enabled (no Memcached available)" if logger
