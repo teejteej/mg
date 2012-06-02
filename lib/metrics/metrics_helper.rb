@@ -38,11 +38,11 @@ module MetricsHelper
     begin
       start = Time.now
       
-      if !(request.user_agent =~ BOTS)    
-        unless cookies[AARRR::Config.cookie_name]
+      if !(request.user_agent =~ BOTS)
+        if !cookies[AARRR::Config.cookie_name]
           AARRR(request.env).set_cookie(response)
           data = [
-            {:key => :first_visit, :value => Time.now, :overwrite => false}, 
+            {:key => :first_visit, :value => Time.now.utc, :overwrite => false}, 
             {:key => :share_code, :value => (("a".."z").to_a + ("A".."Z").to_a + ("0".."9").to_a).sort_by{rand}[0,7].join, :overwrite => false},
             {:key => :first_visit_referrer, :value => request.env['HTTP_REFERER'], :overwrite => false}
           ]
