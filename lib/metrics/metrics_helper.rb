@@ -242,7 +242,7 @@ module MetricsHelper
 
   def link_current_metrics_user(current_user)
     begin
-      if current_user && get_user_metric_data(:current_user_id).blank?
+      if current_user
         set_user_metric_data(:current_user_id, current_user.id.to_s, :overwrite => true)
       end
     rescue Exception => e
