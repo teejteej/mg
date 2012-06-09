@@ -147,7 +147,7 @@ module MetricsHelper
     rescue Exception => e
       metrics_error e
     end
-    
+
     result
   end
 
