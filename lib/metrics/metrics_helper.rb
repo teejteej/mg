@@ -193,11 +193,15 @@ module MetricsHelper
 
   def ab_convert!(conversion)
     begin
+      start = Time.now
+
       if Metrics::config[:ab_framework] == :abongo
         bongo! conversion
       elsif Metrics::config[:ab_framework] == :abingo
         bingo! conversion
       end
+
+      log_metrics_delay start, "ab_convert!"
     rescue Exception => e
       metrics_error e, 'AB Conversion'
     end
