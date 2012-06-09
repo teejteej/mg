@@ -39,14 +39,14 @@ module MetricsHelper
       start = Time.now
       
       if !(request.user_agent =~ BOTS)
-        if !cookies[AARRR::Config.cookie_name]
-          AARRR(request.env).set_cookie(response)
+        if !cookies[MongoMetrics::Config.cookie_name]
+          MongoMetrics(request.env).set_cookie(response)
           data = [
-            {:key => :first_visit, :value => Time.now.utc, :overwrite => false}, 
-            {:key => :share_code, :value => (("a".."z").to_a + ("A".."Z").to_a + ("0".."9").to_a).sort_by{rand}[0,7].join, :overwrite => false},
-            {:key => :first_visit_referrer, :value => request.env['HTTP_REFERER'], :overwrite => false}
+            {:key => :first_visit, :value => Time.now.utc, :overwrite => true}, 
+            {:key => :share_code, :value => (("a".."z").to_a + ("A".."Z").to_a + ("0".."9").to_a).sort_by{rand}[0,7].join, :overwrite => true},
+            {:key => :first_visit_referrer, :value => request.env['HTTP_REFERER'], :overwrite => true}
           ]
-          data << {:key => :first_visit_source, :value => params[:src], :overwrite => false} unless params[:src].blank?
+          data << {:key => :first_visit_source, :value => params[:src], :overwrite => true} unless params[:src].blank?
           set_user_metric_data data
           
           track_metric :referral, :referrer, {:referral_code => request.params['vt'][0..10]}, request unless request.params['vt'].blank?
@@ -88,10 +88,10 @@ module MetricsHelper
       if !(request.user_agent =~ BOTS) && (!options[:per] || (options[:per] == :session && req.session["per_session_#{event_name}_#{event_type}"].blank?))
         options[:event_type] = event_type
         data = {}
-        data[:session] = req.session_options[:id]
+        # data[:session] = req.session_options[:id]
         data.merge! options[:data] unless options[:data].blank?
         options[:data] = data
-        AARRR(req.env).track event_name, options
+        MongoMetrics(req.env).track event_name, options
         req.session["per_session_#{event_name}_#{event_type}"] = true if options[:per] == :session
       end
       
@@ -101,11 +101,6 @@ module MetricsHelper
     end
   end
 
-  def track_metric!(event_type, event_name, options = {})
-    options[:complete] = true
-    track_metric event_type, event_name, options
-  end
-  
   def track_realtime(type, data = {}, options = {})
     begin
       if (defined?(request) && !(request.user_agent =~ BOTS)) || !defined?(request)
@@ -116,7 +111,7 @@ module MetricsHelper
     
         event = {:_type => type}
         event.merge! data
-        event[:_session] = AARRR(request.env).id || request.session_options[:id] if defined?(request) && options[:add_session]
+        event[:_session] = MongoMetrics(request.env).id || request.session_options[:id] if defined?(request) && options[:add_session]
 
         Metrics::realtime_connection.set "#{Metrics::realtime_config[:event_prefix]}-event-#{uuid}", event.to_json
         Metrics::realtime_connection.lpush "#{Metrics::realtime_config[:event_prefix]}-queue", uuid
@@ -135,8 +130,8 @@ module MetricsHelper
     begin
       start = Time.now
 
-      if !(request.user_agent =~ BOTS)        
-        metric_user = AARRR(req.env).user
+      if !(request.user_agent =~ BOTS)
+        metric_user = MongoMetrics(req.env).user({:fields => {field => 1, '_id' => 0}})
         data = metric_user ? (metric_user['data'] || {}) : {}
         result = data[field.to_s]
       end
@@ -159,22 +154,33 @@ module MetricsHelper
         options = args[2] || {}
         req = args[3] || request
 
-        metric_user = AARRR(req.env).user
-        data = metric_user ? (metric_user['data'] || {}) : {}
-
-        if field.is_a? Symbol
-          if options[:overwrite] || (!options[:overwrite] && data[field.to_s].blank?)
-            data[field.to_s] = value
-            AARRR(req.env).set_data data
+        overwrites = {}
+        non_overwrites = {}
+        
+        if field.is_a?(Symbol) || field.is_a?(String)
+          if options[:overwrite]
+            overwrites["data.#{field.to_s}"] = value
+          else
+            non_overwrites["data.#{field.to_s}"] = value
           end
         else
           field.each do |field_hash|
-            if field_hash[:overwrite] || (!field_hash[:overwrite] && data[field.to_s].blank?)
-              data[field_hash[:key].to_s] = field_hash[:value]
+            if field_hash[:overwrite]
+              overwrites["data.#{field_hash[:key].to_s}"] = field_hash[:value]
+            else
+              non_overwrites["data.#{field_hash[:key].to_s}"] = field_hash[:value]
             end
           end
-          AARRR(req.env).set_data data
         end
+
+        unless overwrites.empty?
+          MongoMetrics(req.env).update("$set" => overwrites)
+        end
+
+        unless non_overwrites.empty?
+          # TODO ... must use some kind of $exists but on property level
+        end
+        
       end
       
       log_metrics_delay start, "set_user_metric_data"
@@ -209,12 +215,8 @@ module MetricsHelper
         metrics_error "Invalid :ab_framework param passed to Metrics::init: #{Metrics::config[:ab_framework]}"
       end
   
-      if !(request.user_agent =~ BOTS)
-        ab_tests = get_user_metric_data(:ab_tests) || {}
-        if ab_tests[test_name.to_s].blank?
-          ab_tests[test_name.to_s] = in_test
-          set_user_metric_data :ab_tests, ab_tests, :overwrite => true
-        end
+      if !(request.user_agent =~ BOTS) && in_test
+        set_user_metric_data "ab_tests.#{test_name}", in_test, :overwrite => true
       end
 
       log_metrics_delay start, "ab_test_with_metrics"
@@ -228,7 +230,7 @@ module MetricsHelper
   def link_current_metrics_user(current_user)
     begin
       if current_user && get_user_metric_data(:current_user_id).blank?
-        set_user_metric_data(:current_user_id, current_user.id.to_s)
+        set_user_metric_data(:current_user_id, current_user.id.to_s, :overwrite => true)
       end
     rescue Exception => e
       metrics_error e

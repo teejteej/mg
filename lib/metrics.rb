@@ -1,4 +1,5 @@
 require 'metrics/version'
+require 'metrics/mongo_metrics'
 require 'metrics/railtie' if defined?(Rails)
 
 module Metrics
@@ -45,24 +46,11 @@ module Metrics
           "#{datetime.iso8601} [#{severity}] #{msg}\n"
         end
         
-        AARRR.connection = Mongo::Connection.new host, port
-        AARRR::Config.cookie_expiration = 3600*24*999
-        AARRR::Config.database_name = db
+        MongoMetrics.connection = Mongo::Connection.new host, port
+        MongoMetrics::Config.cookie_expiration = 3600*24*999
+        MongoMetrics::Config.database_name = db
 
         logger.info "Metrics initialized: #{host}:#{port}@#{db} [#{config}]" if self.config[:log_delays] && logger
-
-        # Patch AARRR
-        patch = <<-PATCH
-        module ::AARRR
-          class Session
-            def set_data(data)
-              update({"data" => data})
-            end
-          end
-        end
-        PATCH
-
-        eval patch
       rescue => e
         if self.config[:exception_on_init_fail] && (!defined?(Rails) || (defined?(Rails) && Rails.env.production?))
           raise e

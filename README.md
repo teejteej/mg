@@ -3,7 +3,6 @@
 
 # Add to your Gemfile
 
-	gem 'aarrr', :git => 'git://github.com/teejteej/aarrr.git'
 	gem 'metrics', :git => 'git://github.com/teejteej/mg.git'
 
 	gem 'mongo'
