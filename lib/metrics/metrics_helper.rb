@@ -40,10 +40,17 @@ module MetricsHelper
       
       if !(request.user_agent =~ BOTS)
         if !cookies[MongoMetrics::Config.cookie_name]
+          
+          share_code = (("a".."z").to_a + ("A".."Z").to_a + ("0".."9").to_a).sort_by{rand}[0,7].join
+          
           MongoMetrics(request.env).set_cookie(response)
+          
+          request.env['mongometrics.extra'] = share_code
+          cookies['_utmextr'] = {:value => share_code, :path => '/', :expires => Time.now+MongoMetrics::Config.cookie_expiration}
+          
           data = [
             {:key => :first_visit, :value => Time.now.utc, :overwrite => true}, 
-            {:key => :share_code, :value => (("a".."z").to_a + ("A".."Z").to_a + ("0".."9").to_a).sort_by{rand}[0,7].join, :overwrite => true},
+            {:key => :share_code, :value => share_code, :overwrite => true},
             {:key => :first_visit_referrer, :value => request.env['HTTP_REFERER'], :overwrite => true}
           ]
           data << {:key => :first_visit_source, :value => params[:src], :overwrite => true} unless params[:src].blank?
@@ -244,15 +251,12 @@ module MetricsHelper
   end
   
   def user_share_code
-    get_user_metric_data(:share_code) || 'no'
+    request.env['mongometrics.extra'] || request.cookies['_utmextr'] || 'no' rescue 'no'
   end
   
   def nps_voteable?
     begin
-      if !Metrics::nps_config.empty? && (!Metrics::nps_config[:once_per_user] || (Metrics::nps_config[:once_per_user] && !get_user_metric_data("#{Metrics::nps_config[:event_name]}_voted")))
-        votes = Metrics::nps_cache.get(Metrics::nps_config[:cache_cohort].call).to_i || 0
-        return votes < Metrics::nps_config[:votes_needed]
-      end
+      return !Metrics::nps_config.empty? && ((Metrics::nps_cache.get(Metrics::nps_config[:cache_cohort].call).to_i || 0) < Metrics::nps_config[:votes_needed]) && (!Metrics::nps_config[:once_per_user] || (Metrics::nps_config[:once_per_user] && !get_user_metric_data("#{Metrics::nps_config[:event_name]}_voted")))
     rescue Exception => e
       metrics_error e, 'NPS voteable?'
     end
