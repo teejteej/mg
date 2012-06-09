@@ -131,7 +131,7 @@ module MetricsHelper
       start = Time.now
 
       if !(request.user_agent =~ BOTS)
-        metric_user = MongoMetrics(req.env).user({:fields => {field => 1, '_id' => 0}})
+        metric_user = MongoMetrics(req.env).user({:fields => {"data.#{field}" => 1, '_id' => 0}})
         data = metric_user ? (metric_user['data'] || {}) : {}
         result = data[field.to_s]
       end
@@ -178,7 +178,9 @@ module MetricsHelper
         end
 
         unless non_overwrites.empty?
-          # TODO ... must use some kind of $exists but on property level
+          non_overwrites.each do |key, value|
+            MongoMetrics(req.env).update_if_not_set(key, {'$set' => {key => value}})
+          end
         end
         
       end

@@ -142,6 +142,14 @@ module MongoMetrics
       MongoMetrics.users.update({"_id" => id}, attributes, options)
     end
 
+    def update_if_not_set(check_field, attributes, options = {}, check_nil = false)
+      if check_nil
+        MongoMetrics.users.update({'_id' => id, '$or' => [{check_field => nil}, {check_field => {'$exists' => false}}]}, attributes, options)
+      else
+        MongoMetrics.users.update({'_id' => id, check_field => {'$exists' => false}}, attributes, options)
+      end
+    end
+
     protected
 
     def parse_id(env_or_object)
