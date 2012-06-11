@@ -21,6 +21,10 @@ module Metrics
     def realtime_config
       @realtime_config || {}
     end
+
+    def realtime_configured?
+      !realtime_config.empty?
+    end
     
     def realtime_connection
       @realtime_connection || {}
