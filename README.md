@@ -49,12 +49,13 @@
 	- `track_realtime 'some_realtime_event'`
 	- `track_realtime('some_realtime_event', {:my_param => 'my_value'})`. Track realtime with extra parameter, that can be used in realtime backend.
 
-# Tracking NPS survey metrics
+# Tracking survey metrics
 
-- `Metrics::init_nps({:votes_needed => 200, :event_name => 'nps_score_1', :event_type => 'nps_score', :cache_cohort => proc{"nps_score_#{Time.now.month}_#{Time.now.year}"}, :once_per_user => true, :cache_server => '127.0.0.1:11211'})`
-- _Note:_ `event_name` also functions as unique identification to see if the users already voted or not. If `config[:once_per_user] == true`, and we change event_name after the user has voted once already, he can vote again.
-- `nps_voteable?`. Can the user vote, based on the init_nps configuration?
-- `nps_vote(3)`. Score the NPS vote.
+- `Metrics::init_survey('nps', {:votes_needed => 200, :event_name => 'nps_score_1', :event_type => 'nps_score', :cache_cohort => proc{"nps_score_#{Time.now.month}_#{Time.now.year}"}, :once_per_user => true, :cache_server => '127.0.0.1:11211'})`
+  - _Note:_ set the config param `global_one_survey_per_user` to `true` for each `init_survey` you call, and it will only show one survey per user, independent of the type of survey.
+  - _Note:_ `event_name` also functions as unique identification to see if the users already voted or not. If `config[:once_per_user] == true`, and we change event_name after the user has voted once already, he can vote again.
+- `survey_voteable?('nps')`. Can the user vote, based on the init_survey configuration for that type ('nps' in this case)?
+- `survey_vote('nps', 3)`. Score the NPS vote.
 
 # Misc.
 

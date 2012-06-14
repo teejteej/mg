@@ -254,29 +254,34 @@ module MetricsHelper
     request.env['mongometrics.extra'] || request.cookies['_utmextr'] || 'no' rescue 'no'
   end
   
-  def nps_voteable?
+  def survey_voteable?(type)
     begin
-      return !Metrics::nps_config.empty? && ((Metrics::nps_cache.get(Metrics::nps_config[:cache_cohort].call).to_i || 0) < Metrics::nps_config[:votes_needed]) && (!Metrics::nps_config[:once_per_user] || (Metrics::nps_config[:once_per_user] && !get_user_metric_data("#{Metrics::nps_config[:event_name]}_voted")))
+      if !(Metrics::survey_config[type]||{}).empty? && Metrics::survey_cache[type] && ((Metrics::survey_cache[type].get(Metrics::survey_config[type][:cache_cohort].call).to_i || 0) < Metrics::survey_config[type][:votes_needed])
+        if !Metrics::survey_config[type][:global_one_survey_per_user] && ((!Metrics::survey_config[type][:once_per_user] || (Metrics::survey_config[type][:once_per_user] && !get_user_metric_data("#{Metrics::survey_config[type][:event_name]}_voted"))))
+          return true
+        elsif Metrics::survey_config[type][:global_one_survey_per_user] && !get_user_metric_data(:survey_voted)
+          return true
+        end
+      end
     rescue Exception => e
-      metrics_error e, 'NPS voteable?'
+      metrics_error e, "survey_voteable_#{type}"
     end
   
     false
   end
 
-  def nps_vote(score)
+  def survey_vote(type, score)
     begin
-      if nps_voteable?
-        track_metric Metrics::nps_config[:event_type], Metrics::nps_config[:event_name], :data => {:score => score.to_i}
-        set_user_metric_data "#{Metrics::nps_config[:event_name]}_voted".to_sym, score.to_i, :overwrite => true
+      track_metric Metrics::survey_config[type][:event_type], Metrics::survey_config[type][:event_name], :data => {:score => score.to_i}
+      set_user_metric_data "#{Metrics::survey_config[type][:event_name]}_voted".to_sym, score.to_i, :overwrite => true
+      set_user_metric_data :survey_voted, true, :overwrite => true
+  
+      Metrics::survey_cache[type].add Metrics::survey_config[type][:cache_cohort].call, 0, nil, {:raw => true}
+      Metrics::survey_cache[type].incr Metrics::survey_config[type][:cache_cohort].call
     
-        Metrics::nps_cache.add Metrics::nps_config[:cache_cohort].call, 0, nil, {:raw => true}
-        Metrics::nps_cache.incr Metrics::nps_config[:cache_cohort].call
-      
-        track_realtime('nps_score', {:score => score.to_i}) if respond_to?(:track_realtime)
-      end
+      track_realtime("#{type}_score", {:score => score.to_i}) if respond_to?(:track_realtime)
     rescue Exception => e
-      metrics_error e, 'NPS voting'
+      metrics_error e, "survey_vote_#{type}"
     end
   end
   

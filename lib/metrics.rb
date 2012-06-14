@@ -9,8 +9,8 @@ module Metrics
     attr_writer :config
     attr_writer :realtime_config
     attr_writer :realtime_connection
-    attr_writer :nps_config
-    attr_writer :nps_cache
+    attr_writer :survey_config
+    attr_writer :survey_cache
     
     # For metrics
     def config
@@ -30,13 +30,13 @@ module Metrics
       @realtime_connection || {}
     end
     
-    # For NPS
-    def nps_config
-      @nps_config || {}
+    # For Survey
+    def survey_config
+      @survey_config ||= {}
     end
     
-    def nps_cache
-      @nps_cache || {}
+    def survey_cache
+      @survey_cache ||= {}
     end
     
     attr_accessor :logger
@@ -79,17 +79,17 @@ module Metrics
       end
     end
    
-    def init_nps(config = {})
+    def init_survey(type, config = {})
       begin
-        self.nps_config = {:cache_server => '127.0.0.1:11211', :votes_needed => 200, :event_name => 'nps_score_1', :event_type => 'nps_score', :cache_cohort => proc{'nps_score'}, :once_per_user => true}.merge(config)
-        self.nps_cache = Dalli::Client.new config[:cache_server]
+        self.survey_config[type] = {:cache_server => '127.0.0.1:11211', :votes_needed => 200, :event_name => "#{type}_score_1", :event_type => "#{type}_score", :cache_cohort => proc{"#{type}_score"}, :once_per_user => true}.merge(config)
+        self.survey_cache[type] = Dalli::Client.new config[:cache_server]
 
-        logger.info "NPS Survey initialized: #{config}" if self.config[:log_delays] && logger
+        logger.info "#{type} Survey initialized: #{config}" if self.config[:log_delays] && logger
       rescue => e
         if self.config[:exception_on_init_fail] && (!defined?(Rails) || (defined?(Rails) && Rails.env.production?))
           raise e
         else
-          logger.warn "NPS not enabled (no Memcached available)" if logger
+          logger.warn "#{type} not enabled (no Memcached available)" if logger
         end
       end
     end
