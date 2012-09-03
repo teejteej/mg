@@ -94,7 +94,11 @@ module MongoMetrics
       self.env = env_or_object
       self.id = parse_id(env_or_object) || BSON::ObjectId.new.to_s
 
-      MongoMetrics.users.update({"_id" => id}, {"$set" => attributes || {}}, :upsert => true)
+      if Metrics::config[:use_queue]
+        Metrics::EventQueue.push({:type => :metric, :method => :init, :id => id, :attributes => attributes})
+      else
+        MongoMetrics.users.update({"_id" => id}, {"$set" => attributes || {}}, :upsert => true)
+      end
     rescue Exception => e
       if MongoMetrics.suppress_errors
         puts "Unable to log metrics: #{e.to_s}"
@@ -117,8 +121,8 @@ module MongoMetrics
 
     def track(event_name, options = {})
       options = options.with_indifferent_access
-
-      result = MongoMetrics.events.insert({
+      
+      data = {
         "aarrr_user_id" => self.id,
         "event_name" => event_name.to_s,
         "event_type" => options["event_type"].to_s,
@@ -126,9 +130,14 @@ module MongoMetrics
         "referral_code" => options["referral_code"],
         "user_agent" => options["user_agent"] || get_user_agent,
         "created_at" => options["created_at"] || Time.now.getutc
-      })
-
-      result
+      }
+      
+      if Metrics::config[:use_queue]
+        Metrics::EventQueue.push({:type => :metric, :method => :track, :data => data})
+      else
+        result = MongoMetrics.events.insert(data)
+        result
+      end
 
     rescue Exception => e
       if MongoMetrics.suppress_errors
@@ -139,14 +148,22 @@ module MongoMetrics
     end
 
     def update(attributes, options = {})
-      MongoMetrics.users.update({"_id" => id}, attributes, options)
+      if Metrics::config[:use_queue]
+        Metrics::EventQueue.push({:type => :metric, :method => :update, :id => id, :attributes => attributes, :options => options})
+      else
+        MongoMetrics.users.update({"_id" => id}, attributes, options)
+      end
     end
 
     def update_if_not_set(check_field, attributes, options = {}, check_nil = false)
-      if check_nil
-        MongoMetrics.users.update({'_id' => id, '$or' => [{check_field => nil}, {check_field => {'$exists' => false}}]}, attributes, options)
+      if Metrics::config[:use_queue]
+        Metrics::EventQueue.push({:type => :metric, :method => :update_if_not_set, :check_field => check_field, :check_nil => check_nil, :id => id, :attributes => attributes, :options => options})
       else
-        MongoMetrics.users.update({'_id' => id, check_field => {'$exists' => false}}, attributes, options)
+        if check_nil
+          MongoMetrics.users.update({'_id' => id, '$or' => [{check_field => nil}, {check_field => {'$exists' => false}}]}, attributes, options)
+        else
+          MongoMetrics.users.update({'_id' => id, check_field => {'$exists' => false}}, attributes, options)
+        end
       end
     end
 

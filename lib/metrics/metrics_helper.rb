@@ -120,9 +120,16 @@ module MetricsHelper
         event.merge! data
         event[:_session] = MongoMetrics(request.env).id || request.session_options[:id] if defined?(request) && options[:add_session]
 
-        Metrics::realtime_connection.set "#{Metrics::realtime_config[:event_prefix]}-event-#{uuid}", event.to_json
-        Metrics::realtime_connection.lpush "#{Metrics::realtime_config[:event_prefix]}-queue", uuid
-        Metrics::realtime_connection.expire "#{Metrics::realtime_config[:event_prefix]}-event-#{uuid}", options[:expire]
+        event_key = "#{Metrics::realtime_config[:event_prefix]}-event-#{uuid}"
+        event_queue = "#{Metrics::realtime_config[:event_prefix]}-queue"
+        
+        if Metrics::realtime_config[:use_queue]
+          Metrics::EventQueue.push({:type => :realtime, :event_json => event.to_json, :event_key => event_key, :event_queue => event_queue, :event_expire => options[:expire], :event_uuid => uuid})
+        else
+          Metrics::realtime_connection.set event_key, event.to_json
+          Metrics::realtime_connection.lpush event_queue, uuid
+          Metrics::realtime_connection.expire event_key, options[:expire]
+        end
 
         log_realtime_metrics_delay start, "track_realtime" if !options[:skip_log_delay]
       end

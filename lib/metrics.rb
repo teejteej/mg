@@ -1,5 +1,6 @@
 require 'metrics/version'
 require 'metrics/mongo_metrics'
+require 'metrics/queue'
 require 'metrics/railtie' if defined?(Rails)
 
 module Metrics
@@ -11,6 +12,11 @@ module Metrics
     attr_writer :realtime_connection
     attr_writer :survey_config
     attr_writer :survey_cache
+    attr_writer :queue
+    
+    def queue
+      @queue
+    end
     
     # For metrics
     def config
@@ -54,6 +60,11 @@ module Metrics
         MongoMetrics::Config.cookie_expiration = 3600*24*999
         MongoMetrics::Config.database_name = db
 
+        if self.config[:use_queue] && !self.queue
+          self.queue = Queue.new
+          EventQueue.start_worker
+        end
+
         logger.info "Metrics initialized: #{host}:#{port}@#{db} [#{config}]" if self.config[:log_delays] && logger
       rescue => e
         if self.config[:exception_on_init_fail] && (!defined?(Rails) || (defined?(Rails) && Rails.env.production?))
@@ -68,6 +79,11 @@ module Metrics
       begin
         self.realtime_config = {:event_prefix => 'fnordmetric'}.merge(config)
         self.realtime_connection = Redis.new :host => host, :port => port
+
+        if self.realtime_config[:use_queue] && !self.queue
+          self.queue = Queue.new
+          EventQueue.start_worker
+        end
 
         logger.info "Realtime Metrics initialized: #{host}:#{port} [#{realtime_config}]" if self.realtime_config[:log_delays] && logger
       rescue => e
