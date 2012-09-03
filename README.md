@@ -19,7 +19,7 @@
 
 # Tracking metrics
 
-	- Add to your environment: `Metrics::init('localhost', 27017, 'metrics', {:no_bounce_seconds => 10, :long_visit_seconds => 120, :log_delays => true, :log_delays_as_realtime_event => 'metrics_delay', :log_delays_realtime_sample => 0.1, :log_errors_as_realtime_event => 'metrics_error'})`
+	- Add to your environment: `Metrics::init('localhost', 27017, 'metrics', {:no_bounce_seconds => 10, :long_visit_seconds => 120, :log_delays => true, :log_delays_as_realtime_event => 'metrics_delay', :log_delays_realtime_sample => 0.1, :log_errors_as_realtime_event => 'metrics_error', :use_queue => true})`
 		- Where `log_delays`, `log_delays_as_realtime_event`, `log_delays_realtime_sample` and `log_errors_as_realtime_event` are optional configuration parameters.
 		- `exception_on_init_fail` can be set `true` to all `init` methods methods, to raise exceptions when connection on initialization fails. Defaults to `false`.
 	- `track_metric :activation, 'some_event'`
@@ -43,7 +43,7 @@
 
 # Tracking realtime metrics
 
-	- `Metrics::init_realtime('localhost', 6379, {:event_prefix => 'fnordmetric', :log_delays => false, :log_delays_as_realtime_event => 'realtime_metrics_delay', :log_delays_realtime_sample => 0.1})`
+	- `Metrics::init_realtime('localhost', 6379, {:event_prefix => 'fnordmetric', :log_delays => false, :log_delays_as_realtime_event => 'realtime_metrics_delay', :log_delays_realtime_sample => 0.1, :use_queue => true})`
 		- Where `log_delays`, `log_delays_as_realtime_event` and `log_delays_realtime_sample` are optional configuration parameters.
 	- `track_realtime 'pageview', {}, :add_session => true`. Track realtime, unique per session (visitors per day in this case; not unique visitors per day)
 	- `track_realtime 'some_realtime_event'`
