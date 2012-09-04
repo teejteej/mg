@@ -5,7 +5,7 @@ module Metrics
     class << self
       
       def start_worker
-        puts "Started worker"
+
         consumer = Thread.new do
           while true
             event = Metrics::queue.pop
