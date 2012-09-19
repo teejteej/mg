@@ -1,4 +1,6 @@
-require "active_support/core_ext/hash/indifferent_access"
+require 'active_support/core_ext/hash/indifferent_access'
+require 'uuidtools'
+require 'redis'
 
 def MongoMetrics(env_or_model, attributes = nil)
   if env_or_model.is_a?(Hash) && env_or_model["mongometrics.session"]

@@ -49,13 +49,9 @@ module Metrics
     
     def init(host, port, db, config = {})
       begin
+        setup_logger
         self.config = config
-        
-        self.logger = defined?(Rails) ? Logger.new(Rails.root.join('log/metrics.log')) : Logger.new(STDOUT)
-        self.logger.formatter = proc do |severity, datetime, progname, msg|
-          "#{datetime.iso8601} [#{severity}] #{msg}\n"
-        end
-        
+
         MongoMetrics.connection = Mongo::Connection.new host, port
         MongoMetrics::Config.cookie_expiration = 3600*24*999
         MongoMetrics::Config.database_name = db
@@ -77,6 +73,7 @@ module Metrics
     
     def init_realtime(host, port, config = {})
       begin
+        setup_logger
         self.realtime_config = {:event_prefix => 'fnordmetric'}.merge(config)
         self.realtime_connection = Redis.new :host => host, :port => port
 
@@ -109,7 +106,18 @@ module Metrics
         end
       end
     end
-    
+  
+private
+
+    def setup_logger
+      unless self.logger
+        self.logger = defined?(Rails) ? Logger.new(Rails.root.join('log/metrics.log')) : Logger.new(STDOUT)
+        self.logger.formatter = proc do |severity, datetime, progname, msg|
+          datetime && defined?(datetime.iso8601) ? "#{datetime.iso8601} [#{severity}] #{msg}\n" : "#{datetime} [#{severity}] #{msg}\n"
+        end
+      end
+    end
+
   end
 
 end
