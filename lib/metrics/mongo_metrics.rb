@@ -1,4 +1,6 @@
 require 'active_support/core_ext/hash/indifferent_access'
+require 'logger'
+require 'json'
 require 'uuidtools'
 require 'redis'
 
