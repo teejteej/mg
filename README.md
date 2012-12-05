@@ -1,7 +1,7 @@
 # (Optional) Installing without Gemfile
 	- http://raflabs.com/blogs/silence-is-foo/2010/07/19/installing-a-gem-fork-from-github-source/
 
-# Add to your Gemfile
+# Add to your Gemfile (they're __all__ needed)
 
 	gem 'metrics', :git => 'git://github.com/teejteej/mg.git'
 
@@ -54,8 +54,9 @@
 - `Metrics::init_survey('nps', {:votes_needed => 200, :event_name => 'nps_score_1', :event_type => 'nps_score', :cache_cohort => proc{"nps_score_#{Time.now.month}_#{Time.now.year}"}, :once_per_user => true, :cache_server => '127.0.0.1:11211'})`
   - _Note:_ set the config param `global_one_survey_per_user` to `true` for each `init_survey` you call, and it will only show one survey per user, independent of the type of survey.
   - _Note:_ `event_name` also functions as unique identification to see if the users already voted or not. If `config[:once_per_user] == true`, and we change event_name after the user has voted once already, he can vote again.
+  - _Note:_ set the config param `track_realtime` to `true` for each `init_survey` you call, and it will track the survey vote in realtime with event name as `#{type}_score` (`nps_score` for example). The score object is available as data[:score] in the realtime backend.
 - `survey_voteable?('nps')`. Can the user vote, based on the init_survey configuration for that type ('nps' in this case)?
-- `survey_vote('nps', 3)`. Score the NPS vote.
+- `survey_vote('nps', 3)`. Score the NPS vote. The second argument may be an integer, or a custom hash to set as 'score' for the vote.
 
 # Misc.
 

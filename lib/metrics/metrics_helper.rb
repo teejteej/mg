@@ -279,14 +279,16 @@ module MetricsHelper
 
   def survey_vote(type, score)
     begin
-      track_metric Metrics::survey_config[type][:event_type], Metrics::survey_config[type][:event_name], :data => {:score => score.to_i}
-      set_user_metric_data "#{Metrics::survey_config[type][:event_name]}_voted".to_sym, score.to_i, :overwrite => true
+      track_metric Metrics::survey_config[type][:event_type], Metrics::survey_config[type][:event_name], :data => score.is_a?(Hash) ? score : {:score => score.to_i}
+      set_user_metric_data "#{Metrics::survey_config[type][:event_name]}_voted".to_sym, score.is_a?(Hash) ? score : score.to_i, :overwrite => true
       set_user_metric_data :survey_voted, true, :overwrite => true
-  
-      Metrics::survey_cache[type].add Metrics::survey_config[type][:cache_cohort].call, 0, nil, {:raw => true}
-      Metrics::survey_cache[type].incr Metrics::survey_config[type][:cache_cohort].call
-    
-      track_realtime("#{type}_score", {:score => score.to_i}) if respond_to?(:track_realtime)
+
+      if Metrics::survey_cache[type]
+        Metrics::survey_cache[type].add Metrics::survey_config[type][:cache_cohort].call, 0, nil, {:raw => true}
+        Metrics::survey_cache[type].incr Metrics::survey_config[type][:cache_cohort].call
+      end
+
+      track_realtime("#{type}_score", score.is_a?(Hash) ? score : {:score => score.to_i}) if Metrics::survey_config[type][:track_realtime] && respond_to?(:track_realtime)
     rescue Exception => e
       metrics_error e, "survey_vote_#{type}"
     end
