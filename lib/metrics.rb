@@ -6,6 +6,12 @@ require 'metrics/railtie' if defined?(Rails)
 module Metrics
   
   class << self
+
+    attr_accessor :mongo_host
+    attr_accessor :mongo_port
+
+    attr_accessor :realtime_host
+    attr_accessor :realtime_port
     
     attr_writer :config
     attr_writer :realtime_config
@@ -50,6 +56,8 @@ module Metrics
     def init(host, port, db, config = {})
       begin
         setup_logger
+        self.mongo_host = host
+        self.mongo_port = port
         self.config = config
 
         MongoMetrics.connection = Mongo::Connection.new host, port
@@ -74,6 +82,8 @@ module Metrics
     def init_realtime(host, port, config = {})
       begin
         setup_logger
+        self.realtime_host = host
+        self.realtime_port = port
         self.realtime_config = {:event_prefix => 'fnordmetric'}.merge(config)
         self.realtime_connection = Redis.new :host => host, :port => port
 
