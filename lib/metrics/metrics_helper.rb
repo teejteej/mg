@@ -57,6 +57,7 @@ module MetricsHelper
           set_user_metric_data data
           
           track_metric :referral, :referrer, {:referral_code => request.params['vt'][0..10]}, request unless request.params['vt'].blank?
+          request.session[:first_visit] = true
         end
       end
 
