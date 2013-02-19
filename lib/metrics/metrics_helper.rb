@@ -223,6 +223,10 @@ module MetricsHelper
   end
   
   def ab_test_with_metrics(test_name, alternatives = nil, options = {})
+    if alternatives && defined?(Rails) && Rails.env.test?
+      return alternatives.first
+    end
+      
     in_test = nil
 
     begin
