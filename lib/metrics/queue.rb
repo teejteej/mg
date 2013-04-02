@@ -12,7 +12,7 @@ module Metrics
               event = Metrics::queue.pop
               
               unless Thread.current[:mongo_connection]
-                Thread.current[:mongo_connection] = Mongo::Connection.new Metrics::mongo_host, Metrics::mongo_port
+                Thread.current[:mongo_connection] = Mongo::Connection.new Metrics::mongo_host, Metrics::mongo_port, {:w => 0}
                 Metrics::logger.info "Queue worker #{i} connected to MongoDB" if Metrics::logger
               end
 

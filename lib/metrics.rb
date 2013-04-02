@@ -60,7 +60,7 @@ module Metrics
         self.mongo_port = port
         self.config = config
 
-        MongoMetrics.connection = Mongo::Connection.new host, port
+        MongoMetrics.connection = Mongo::Connection.new host, port, {:w => 0}
         MongoMetrics::Config.cookie_expiration = 3600*24*999
         MongoMetrics::Config.database_name = db
 
