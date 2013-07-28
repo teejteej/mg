@@ -51,6 +51,7 @@ module MetricsHelper
           data = [
             {:key => :first_visit, :value => Time.now.utc, :overwrite => true}, 
             {:key => :share_code, :value => share_code, :overwrite => true},
+            {:key => :first_visit_ip, :value => request.remote_ip, :overwrite => true}, 
             {:key => :first_visit_referrer, :value => request.env['HTTP_REFERER'], :overwrite => true}
           ]
           data << {:key => :first_visit_source, :value => params[:src], :overwrite => true} unless params[:src].blank?
