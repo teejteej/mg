@@ -99,7 +99,7 @@ module MongoMetrics
       self.id = parse_id(env_or_object) || BSON::ObjectId.new.to_s
 
       attributes ||= {}
-      attributes['last_request_at'] = Time.now.utc
+      attributes['data.last_request_at'] = Time.now.utc
       
       if Metrics::config[:use_queue]
         Metrics::EventQueue.push({:type => :metric, :method => :init, :id => id, :attributes => attributes})
