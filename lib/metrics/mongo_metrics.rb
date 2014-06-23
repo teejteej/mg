@@ -98,10 +98,13 @@ module MongoMetrics
       self.env = env_or_object
       self.id = parse_id(env_or_object) || BSON::ObjectId.new.to_s
 
+      attributes ||= {}
+      attributes['last_request_at'] = Time.now.utc
+      
       if Metrics::config[:use_queue]
         Metrics::EventQueue.push({:type => :metric, :method => :init, :id => id, :attributes => attributes})
       else
-        MongoMetrics.users.update({"_id" => id}, {"$set" => attributes || {}}, :upsert => true)
+        MongoMetrics.users.update({"_id" => id}, {"$set" => attributes}, :upsert => true)
       end
     rescue Exception => e
       if MongoMetrics.suppress_errors
