@@ -100,9 +100,9 @@ module MongoMetrics
 
       attributes ||= {}
       attributes['data.last_request_at'] = Time.now.utc
-      
+
       if Metrics::config[:use_queue]
-        Metrics::EventQueue.push({:type => :metric, :method => :init, :id => id, :attributes => attributes})
+        Metrics::EventQueue.push({:type => :metric, :method => :init, :id => id, :attributes => attributes}, consistent_index_from_id)
       else
         MongoMetrics.users.update({"_id" => id}, {"$set" => attributes}, :upsert => true)
       end
@@ -140,7 +140,7 @@ module MongoMetrics
       }
       
       if Metrics::config[:use_queue]
-        Metrics::EventQueue.push({:type => :metric, :method => :track, :data => data})
+        Metrics::EventQueue.push({:type => :metric, :method => :track, :data => data}, consistent_index_from_id)
       else
         result = MongoMetrics.events.insert(data)
         result
@@ -156,7 +156,7 @@ module MongoMetrics
 
     def update(attributes, options = {})
       if Metrics::config[:use_queue]
-        Metrics::EventQueue.push({:type => :metric, :method => :update, :id => id, :attributes => attributes, :options => options})
+        Metrics::EventQueue.push({:type => :metric, :method => :update, :id => id, :attributes => attributes, :options => options}, consistent_index_from_id)
       else
         MongoMetrics.users.update({"_id" => id}, attributes, options)
       end
@@ -164,7 +164,7 @@ module MongoMetrics
 
     def update_if_not_set(check_field, attributes, options = {}, check_nil = false)
       if Metrics::config[:use_queue]
-        Metrics::EventQueue.push({:type => :metric, :method => :update_if_not_set, :check_field => check_field, :check_nil => check_nil, :id => id, :attributes => attributes, :options => options})
+        Metrics::EventQueue.push({:type => :metric, :method => :update_if_not_set, :check_field => check_field, :check_nil => check_nil, :id => id, :attributes => attributes, :options => options}, consistent_index_from_id)
       else
         if check_nil
           MongoMetrics.users.update({'_id' => id, '$or' => [{check_field => nil}, {check_field => {'$exists' => false}}]}, attributes, options)
@@ -176,6 +176,10 @@ module MongoMetrics
 
     protected
 
+    def consistent_index_from_id
+      (Digest::MD5.hexdigest(self.id).to_i(16) % (Metrics::config[:queue_workers] || 1))+1
+    end
+    
     def parse_id(env_or_object)
       request = Rack::Request.new(env_or_object)
       request.cookies[MongoMetrics::Config.cookie_name]

@@ -18,10 +18,14 @@ module Metrics
     attr_writer :realtime_connection
     attr_writer :survey_config
     attr_writer :survey_cache
-    attr_writer :queue
+    attr_writer :queues
     
-    def queue
-      @queue
+    def queues
+      @queues
+    end
+    
+    def queue(queue_id)
+      @queues[queue_id]
     end
     
     # For metrics
@@ -64,8 +68,13 @@ module Metrics
         MongoMetrics::Config.cookie_expiration = 3600*24*999
         MongoMetrics::Config.database_name = db
 
-        if self.config[:use_queue] && !self.queue
-          self.queue = Queue.new
+        if self.config[:use_queue] && !self.queues
+          self.queues = {}
+
+          (1..(self.config[:queue_workers] || 1)).each do |i|
+            self.queues[i] = Queue.new
+          end
+          
           EventQueue.start_worker
         end
 
@@ -87,8 +96,13 @@ module Metrics
         self.realtime_config = {:event_prefix => 'fnordmetric'}.merge(config)
         self.realtime_connection = Redis.new :host => host, :port => port
 
-        if self.realtime_config[:use_queue] && !self.queue
-          self.queue = Queue.new
+        if self.realtime_config[:use_queue] && !self.queues
+          self.queues = {}
+          
+          (1..(self.config[:queue_workers] || 1)).each do |i|
+            self.queues[i] = Queue.new
+          end
+
           EventQueue.start_worker
         end
 

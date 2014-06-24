@@ -8,8 +8,10 @@ module Metrics
 
         (Metrics::config[:queue_workers] || 1).times do |i|
           consumer = Thread.new do
+            Thread.current[:thread_id] ||= (i + 1)
+            
             while true
-              event = Metrics::queue.pop
+              event = Metrics::queue(Thread.current[:thread_id]).pop
               
               unless Thread.current[:mongo_connection]
                 Thread.current[:mongo_connection] = Mongo::Connection.new Metrics::mongo_host, Metrics::mongo_port, {:w => 0}
@@ -44,7 +46,13 @@ module Metrics
                 end
 
                 if Metrics::config[:log_queue_size] && rand <= (Metrics::config[:log_queue_size_sample] || 1.0)
-                  Metrics::logger.info "Events Queue size: #{Metrics::queue.size}" if Metrics::logger
+                  queue_size = 0
+                  
+                  (1..(Metrics::config[:queue_workers] || 1)).each do |i|
+                    queue_size += Metrics::queue(i).size
+                  end
+                  
+                  Metrics::logger.info "Events Queue size: #{queue_size}" if Metrics::logger
                 end
                 
               rescue => e
@@ -57,8 +65,10 @@ module Metrics
         
       end
       
-      def push(event)
-        Metrics::queue << event
+      def push(event, queue_id = nil)
+        queue_id ||= (1 + rand * (Metrics::config[:queue_workers] || 1)).to_i
+        
+        Metrics::queue(queue_id) << event
       end
       
     end
