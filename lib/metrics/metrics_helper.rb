@@ -27,6 +27,7 @@ module MetricsHelper
   end
 
   def metrics_error(e, type = 'Track', skip_track_realtime = false)
+    debugger;0
     Metrics::logger.error "#{type} metric error: #{e}" if Metrics::logger
 
     if !skip_track_realtime && Metrics::config[:log_errors_as_realtime_event]
@@ -226,6 +227,12 @@ module MetricsHelper
   def ab_test_with_metrics(test_name, alternatives = nil, options = {})
     if alternatives && defined?(Rails) && Rails.env.test?
       return alternatives.first
+    end
+    
+    unless params[:ab_test].blank?
+      if params[:ab_test] == test_name
+        return params[:ab_var]
+      end
     end
       
     in_test = nil
