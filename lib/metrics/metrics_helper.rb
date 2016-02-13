@@ -27,7 +27,6 @@ module MetricsHelper
   end
 
   def metrics_error(e, type = 'Track', skip_track_realtime = false)
-    debugger;0
     Metrics::logger.error "#{type} metric error: #{e}" if Metrics::logger
 
     if !skip_track_realtime && Metrics::config[:log_errors_as_realtime_event]
