@@ -9,7 +9,6 @@ class IndexController < ApplicationController
 
     set_user_metric_data :user_type, (params[:entry] || 'default'), :overwrite => false
 
-    session[:visit_start] ||= Time.now
     track_metric :metric, :visit_landing_page
     track_realtime 'landing_visit'
     

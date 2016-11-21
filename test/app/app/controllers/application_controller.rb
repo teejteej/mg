@@ -6,7 +6,6 @@ class ApplicationController < ActionController::Base
   before_filter :set_abongo_identity
 
   before_filter :set_metrics_identity, :except => [:test_results]
-  before_filter :track_extra_metrics
 
   def set_abongo_identity
     if (request.user_agent.blank? || request.user_agent =~ BOTS) #This prevents robots from occupying more than 1 participant slot in A/B tests.

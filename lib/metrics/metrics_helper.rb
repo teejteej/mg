@@ -27,6 +27,7 @@ module MetricsHelper
   end
 
   def metrics_error(e, type = 'Track', skip_track_realtime = false)
+    debugger;0
     Metrics::logger.error "#{type} metric error: #{e}" if Metrics::logger
 
     if !skip_track_realtime && Metrics::config[:log_errors_as_realtime_event]
@@ -69,25 +70,6 @@ module MetricsHelper
   end
 
   def track_extra_metrics
-    begin
-      if !(request.user_agent =~ BOTS)
-        if !request.session[:visit_start].blank? && !request.session[:no_landing_bounce_tracked]
-          if (Time.now-request.session[:visit_start]) > (Metrics::config[:no_bounce_seconds] || 10).seconds
-            track_metric :acquisition, :no_landing_bounce, {}, request
-            request.session[:no_landing_bounce_tracked] = true
-          end
-        end
-
-        if !request.session[:visit_start].blank? && !request.session[:long_visit_tracked]
-          if (Time.now-request.session[:visit_start]) > (Metrics::config[:long_visit_seconds] || 120).seconds
-            track_metric :acquisition, :long_visit, {}, request
-            request.session[:long_visit_tracked] = true
-          end
-        end
-      end
-    rescue => e
-      metrics_error e
-    end
   end
 
   def track_metric(event_type, event_name, options = {}, req = request)
@@ -238,7 +220,7 @@ module MetricsHelper
 
     begin
       start = Time.now
-    
+
       if Metrics::config[:ab_framework] == :abingo || Metrics::config[:ab_framework] == :abongo
         in_test = ab_test test_name, alternatives, options
       elsif Metrics::config[:ab_framework] == :vanity
