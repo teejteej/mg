@@ -49,9 +49,3 @@ end
 Metrics::init_survey('nps', {:global_one_survey_per_user => true, :votes_needed => 500, :event_name => 'nps_score_1', :event_type => 'nps_score', :cache_cohort => proc{"nps_score_#{Time.now.strftime('%V')}_#{Time.now.year}"}, :once_per_user => true, :cache_server => '127.0.0.1:11211'})
 Metrics::init_survey('pmf', {:global_one_survey_per_user => true, :votes_needed => 500, :event_name => 'pmf_score_1', :event_type => 'pmf_score', :cache_cohort => proc{"pmf_score_#{Time.now.strftime('%V')}_#{Time.now.year}"}, :once_per_user => true, :cache_server => '127.0.0.1:11211'})
 Metrics::init_survey(SURVEY, {:global_one_survey_per_user => true, :votes_needed => 100000, :event_name => SURVEY, :event_type => SURVEY, :cache_cohort => proc{SURVEY}, :once_per_user => true, :cache_server => '127.0.0.1:11211'})
-
-Abongo.db = Mongo::Connection.new('localhost', 27017)['temp_abongo']
-
-# Clean-up for test
-MongoMetrics::users.drop
-MongoMetrics::events.drop

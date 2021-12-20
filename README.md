@@ -4,13 +4,11 @@
 # Add to your Gemfile (they're __all__ needed)
 
 	gem 'metrics', :git => 'git://github.com/teejteej/mg.git'
+	gem 'httpclient'
+  
+# Initializer
 
-	gem 'mongo'
-	gem 'bson_ext'
-	gem 'redis'
-	gem 'dalli'
-	gem 'kgio'
-	gem 'uuidtools'
+  Add to initializer: ```Metrics.init({:queue_workers => 5, :metrics_webhook_url => "https://..."})```, or set ENV["METRICS_WEBHOOK_URL"]
 
 # Add to your ApplicationController
 

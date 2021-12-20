@@ -1,5 +1,5 @@
 require 'metrics/version'
-require 'metrics/mongo_metrics'
+require 'metrics/track_metrics'
 require 'metrics/queue'
 require 'metrics/railtie' if defined?(Rails)
 
@@ -7,15 +7,8 @@ module Metrics
   
   class << self
 
-    attr_accessor :mongo_host
-    attr_accessor :mongo_port
-
-    attr_accessor :realtime_host
-    attr_accessor :realtime_port
-    
     attr_writer :config
     attr_writer :realtime_config
-    attr_writer :realtime_connection
     attr_writer :survey_config
     attr_writer :survey_cache
     attr_writer :queues
@@ -42,10 +35,6 @@ module Metrics
       !realtime_config.empty?
     end
     
-    def realtime_connection
-      @realtime_connection || {}
-    end
-    
     # For Survey
     def survey_config
       @survey_config ||= {}
@@ -57,18 +46,14 @@ module Metrics
     
     attr_accessor :logger
     
-    def init(host, port, db, config = {})
+    def init(config = {})
       begin
         setup_logger
-        self.mongo_host = host
-        self.mongo_port = port
         self.config = config
 
-        MongoMetrics.connection = Mongo::Connection.new host, port, {:w => 0}
-        MongoMetrics::Config.cookie_expiration = 3600*24*999
-        MongoMetrics::Config.database_name = db
+        TrackMetrics::Config.cookie_expiration = 3600*24*999
 
-        if self.config[:use_queue] && !self.queues
+        if !self.queues
           self.queues = {}
 
           (1..(self.config[:queue_workers] || 1)).each do |i|
@@ -78,57 +63,54 @@ module Metrics
           EventQueue.start_worker
         end
 
-        logger.info "Metrics initialized: #{host}:#{port}@#{db} [#{config}]" if self.config[:log_delays] && logger
+        logger.info "Metrics initialized [#{config}]" if self.config[:log_delays] && logger
       rescue => e
         if self.config[:exception_on_init_fail] && (!defined?(Rails) || (defined?(Rails) && Rails.env.production?))
           raise e
         else
-          logger.warn "Track metrics not enabled (no MongoDB available)." if logger
+          logger.warn "Track metrics not enabled due to error: #{e.message}" if logger
         end
       end
     end
     
-    def init_realtime(host, port, config = {})
-      begin
-        setup_logger
-        self.realtime_host = host
-        self.realtime_port = port
-        self.realtime_config = {:event_prefix => 'fnordmetric'}.merge(config)
-        self.realtime_connection = Redis.new :host => host, :port => port
-
-        if self.realtime_config[:use_queue] && !self.queues
-          self.queues = {}
-          
-          (1..(self.config[:queue_workers] || 1)).each do |i|
-            self.queues[i] = Queue.new
-          end
-
-          EventQueue.start_worker
-        end
-
-        logger.info "Realtime Metrics initialized: #{host}:#{port} [#{realtime_config}]" if self.realtime_config[:log_delays] && logger
-      rescue => e
-        if self.realtime_config[:exception_on_init_fail] && (!defined?(Rails) || (defined?(Rails) && Rails.env.production?))
-          raise e
-        else
-          logger.warn "track_realtime metrics not enabled (no Redis available)" if logger
-        end
-      end
+    def init_realtime(_a, _b, config = {})
+      # begin
+      #   setup_logger
+      #   self.realtime_config = {:event_prefix => 'fnordmetric'}.merge(config)
+      #
+      #   if !self.queues
+      #     self.queues = {}
+      #
+      #     (1..(self.config[:queue_workers] || 1)).each do |i|
+      #       self.queues[i] = Queue.new
+      #     end
+      #
+      #     EventQueue.start_worker
+      #   end
+      #
+      #   logger.info "Realtime Metrics initialized [#{realtime_config}]" if self.realtime_config[:log_delays] && logger
+      # rescue => e
+      #   if self.realtime_config[:exception_on_init_fail] && (!defined?(Rails) || (defined?(Rails) && Rails.env.production?))
+      #     raise e
+      #   else
+      #     logger.warn "track_realtime metrics not enabled due to error: #{e.message}" if logger
+      #   end
+      # end
     end
    
     def init_survey(type, config = {})
-      begin
-        self.survey_config[type] = {:cache_server => '127.0.0.1:11211', :votes_needed => 200, :event_name => "#{type}_score_1", :event_type => "#{type}_score", :cache_cohort => proc{"#{type}_score"}, :once_per_user => true}.merge(config)
-        self.survey_cache[type] = Dalli::Client.new config[:cache_server]
-
-        logger.info "#{type} Survey initialized: #{config}" if self.config[:log_delays] && logger
-      rescue => e
-        if self.config[:exception_on_init_fail] && (!defined?(Rails) || (defined?(Rails) && Rails.env.production?))
-          raise e
-        else
-          logger.warn "#{type} not enabled (no Memcached available)" if logger
-        end
-      end
+      # begin
+      #   self.survey_config[type] = {:cache_server => '127.0.0.1:11211', :votes_needed => 200, :event_name => "#{type}_score_1", :event_type => "#{type}_score", :cache_cohort => proc{"#{type}_score"}, :once_per_user => true}.merge(config)
+      #   self.survey_cache[type] = Dalli::Client.new config[:cache_server]
+      #
+      #   logger.info "#{type} Survey initialized: #{config}" if self.config[:log_delays] && logger
+      # rescue => e
+      #   if self.config[:exception_on_init_fail] && (!defined?(Rails) || (defined?(Rails) && Rails.env.production?))
+      #     raise e
+      #   else
+      #     logger.warn "#{type} not enabled due to error: #{e.message}" if logger
+      #   end
+      # end
     end
   
 private

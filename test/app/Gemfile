@@ -12,10 +12,4 @@ gem 'sdoc', '~> 0.4.0',          group: :doc
 # gem 'spring',        group: :development
 
 gem 'thin'
-
-gem 'uuidtools'
-gem 'abongo', :git => 'git://github.com/teejteej/abongo.git'
 gem 'metrics', :path => '../../'
-gem 'mongo'
-gem 'bson_ext'
-gem 'redis'

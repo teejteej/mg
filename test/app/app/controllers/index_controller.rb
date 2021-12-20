@@ -31,7 +31,7 @@ class IndexController < ApplicationController
 
     user_ids = []
     
-    MongoMetrics::users.find.each do |u|
+    TrackMetrics::users.find.each do |u|
       user_ids << u['_id'].to_s
 
       if !u['data']
@@ -51,7 +51,7 @@ class IndexController < ApplicationController
       end
     end
 
-    MongoMetrics::events.find.each do |e|
+    TrackMetrics::events.find.each do |e|
       events_needs_keys.each do |key|
         if !e.has_key?(key)
           missing_key = true
@@ -67,7 +67,7 @@ class IndexController < ApplicationController
       missing_key = true if !e['user_agent'].include?('Mozilla')
     end
     
-    success = !missing_key && MongoMetrics::users.count == params[:should_users_count].to_i && MongoMetrics::events.count == params[:should_events_count].to_i
+    success = !missing_key && TrackMetrics::users.count == params[:should_users_count].to_i && TrackMetrics::events.count == params[:should_events_count].to_i
     
     render :text => success, :layout => false
   end
